@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Habit {
+  id            String     @id @default(cuid())
+  userId        String
+  title         String
+  description   String?
+  icon          String?    @default("✓")
+  color         String?    @default("#6366f1")
+  frequencyType String     @default("daily") // daily | weekly | monthly
+  frequencyDays Int[]      @default([]) // 0-6 for weekly
+  timesPerPeriod Int?
+  reminderTime  String?    // HH:MM
+  startDate     DateTime   @default(now())
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  logs          HabitLog[]
+
+  @@index([userId])
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  date      String   // YYYY-MM-DD
+  completed Boolean  @default(true)
+  note      String?
+  loggedAt  DateTime @default(now())
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([habitId])
+  @@index([date])
+}
+
+model Objective {
+  id          String      @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  deadline    DateTime
+  status      String      @default("active") // active | completed | overdue | archived
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  keyResults  KeyResult[]
+
+  @@index([userId])
+}
+
+model KeyResult {
+  id           String    @id @default(cuid())
+  objectiveId  String
+  title        String
+  type         String    @default("percentage") // binary | numeric | percentage
+  targetValue  Float     @default(100)
+  currentValue Float     @default(0)
+  unit         String?
+  weight       Int       @default(3) // 1-5
+  status       String    @default("not_started") // not_started | in_progress | completed
+  dueDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  objective    Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  checkIns     CheckIn[]
+
+  @@index([objectiveId])
+}
+
+model CheckIn {
+  id          String    @id @default(cuid())
+  keyResultId String
+  value       Float
+  note        String?
+  date        DateTime  @default(now())
+  keyResult   KeyResult @relation(fields: [keyResultId], references: [id], onDelete: Cascade)
+
+  @@index([keyResultId])
+}

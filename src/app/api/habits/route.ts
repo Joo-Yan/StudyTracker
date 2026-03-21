@@ -1,0 +1,67 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const todayFilter = req.nextUrl.searchParams.get("today") === "true";
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayDow = new Date().getDay(); // 0=Sun … 6=Sat
+
+  const habits = await prisma.habit.findMany({
+    where: { userId: user.id, isActive: true },
+    include: {
+      logs: {
+        where: { date: todayStr },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!todayFilter) return NextResponse.json(habits);
+
+  // Filter to habits scheduled for today
+  const filtered = habits.filter((h) => {
+    if (h.frequencyType === "daily") return true;
+    if (h.frequencyType === "weekly") {
+      return h.frequencyDays.length === 0 || h.frequencyDays.includes(todayDow);
+    }
+    // monthly: always show (no day config yet)
+    return true;
+  });
+
+  return NextResponse.json(filtered);
+}
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+
+  const habit = await prisma.habit.create({
+    data: {
+      userId: user.id,
+      title: body.title,
+      description: body.description,
+      icon: body.icon ?? "✓",
+      color: body.color ?? "#6366f1",
+      frequencyType: body.frequencyType ?? "daily",
+      frequencyDays: body.frequencyDays ?? [],
+      timesPerPeriod: body.timesPerPeriod,
+      reminderTime: body.reminderTime,
+    },
+  });
+
+  return NextResponse.json(habit, { status: 201 });
+}
