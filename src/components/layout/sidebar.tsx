@@ -9,6 +9,9 @@ import {
   LayoutDashboard,
   Target,
   CheckCircle2,
+  FolderKanban,
+  BookOpen,
+  Lightbulb,
   LogOut,
 } from "lucide-react";
 
@@ -16,6 +19,9 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/habits", label: "Habits", icon: CheckCircle2 },
   { href: "/okr", label: "OKR Goals", icon: Target },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/content", label: "Content", icon: BookOpen },
+  { href: "/ideas", label: "Ideas", icon: Lightbulb },
 ];
 
 export function Sidebar() {
@@ -41,7 +47,7 @@ export function Sidebar() {
             href={href}
             className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-              pathname === href
+              (href === "/" ? pathname === "/" : pathname.startsWith(href))
                 ? "bg-secondary text-foreground"
                 : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
             )}

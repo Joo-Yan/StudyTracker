@@ -33,3 +33,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local AI tooling
+.claude/settings.local.json
+.claude/skills/
+.mcp.json
+skills-lock.json
+.agents/

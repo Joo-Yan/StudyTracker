@@ -85,3 +85,97 @@ model CheckIn {
 
   @@index([keyResultId])
 }
+
+model Project {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  status      String       @default("active") // planning | active | paused | completed | archived
+  color       String?      @default("#6366f1")
+  tags        String[]     @default([])
+  startDate   DateTime?
+  targetDate  DateTime?
+  linkedOkrId String?
+  linkedIdeaId String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  milestones  Milestone[]
+  logs        ProjectLog[]
+
+  @@index([userId])
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  order       Int      @default(0)
+  status      String   @default("pending") // pending | in_progress | completed
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  milestoneId String
+  title       String
+  status      String    @default("todo") // todo | doing | done
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
+}
+
+model ProjectLog {
+  id        String   @id @default(cuid())
+  projectId String
+  content   String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ContentItem {
+  id            String    @id @default(cuid())
+  userId        String
+  title         String
+  url           String?
+  description   String?
+  type          String    @default("article") // article | video | book | course | podcast | other
+  tags          String[]  @default([])
+  status        String    @default("want_to_learn") // want_to_learn | learning | completed | dropped
+  priority      Int       @default(2) // 1=high 2=medium 3=low
+  source        String?
+  rating        Int?      // 1-5
+  notes         String?
+  estimatedTime Int?      // minutes
+  createdAt     DateTime  @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  @@index([userId])
+}
+
+model Idea {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  description     String?
+  type            String   @default("project") // project | feature | experiment | thought | other
+  tags            String[] @default([])
+  status          String   @default("raw") // raw | evaluating | planned | in_progress | archived | dropped
+  priority        Int      @default(2) // 1=high 2=medium 3=low
+  linkedProjectId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
