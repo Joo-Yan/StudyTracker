@@ -34,18 +34,12 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const isPublicPath =
+  const isAuthPath =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/register") ||
     request.nextUrl.pathname.startsWith("/auth"); // includes /auth/callback
 
-  if (!user && !isPublicPath) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && isPublicPath) {
+  if (user && isAuthPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

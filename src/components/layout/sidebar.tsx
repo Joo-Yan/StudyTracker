@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Target,
@@ -13,7 +11,6 @@ import {
   BookOpen,
   Lightbulb,
   BarChart3,
-  LogOut,
 } from "lucide-react";
 
 const navItems = [
@@ -28,14 +25,6 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <aside className="w-56 shrink-0 border-r bg-background flex flex-col h-screen sticky top-0">
@@ -59,17 +48,6 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
-      <div className="p-3 border-t">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-3 text-muted-foreground"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </Button>
-      </div>
     </aside>
   );
 }
