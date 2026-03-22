@@ -12,6 +12,7 @@ import {
   FolderKanban,
   BookOpen,
   Lightbulb,
+  BarChart3,
   LogOut,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/content", label: "Content", icon: BookOpen },
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
+  { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
 
 export function Sidebar() {
