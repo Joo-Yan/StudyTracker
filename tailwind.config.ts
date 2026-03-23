@@ -44,10 +44,19 @@ const config: Config = {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
       },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        soft: "var(--shadow-soft)",
+        md: "var(--shadow-md)",
+      },
+      animation: {
+        "subtle-bounce": "subtle-bounce 2s infinite",
+      },
+      keyframes: {
+        "subtle-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
       },
     },
   },
