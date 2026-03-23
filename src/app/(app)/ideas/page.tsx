@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, ArrowRight, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CreateIdeaDialog } from "@/components/ideas/create-idea-dialog";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
+import { TagFilter } from "@/components/shared/tag-filter";
 
 interface Idea {
   id: string;
@@ -40,15 +41,18 @@ export default function IdeasPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [convertIdea, setConvertIdea] = useState<Idea | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagKey, setTagKey] = useState(0);
   const router = useRouter();
 
-  async function fetchIdeas() {
-    const res = await fetch("/api/ideas");
+  const fetchIdeas = useCallback(async () => {
+    const url = selectedTag ? `/api/ideas?tag=${encodeURIComponent(selectedTag)}` : "/api/ideas";
+    const res = await fetch(url);
     setIdeas(await res.json());
     setLoading(false);
-  }
+  }, [selectedTag]);
 
-  useEffect(() => { fetchIdeas(); }, []);
+  useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
 
   async function deleteIdea(id: string) {
     await fetch(`/api/ideas/${id}`, { method: "DELETE" });
@@ -77,6 +81,8 @@ export default function IdeasPage() {
           Capture idea
         </Button>
       </div>
+
+      <TagFilter entity="ideas" selected={selectedTag} onSelect={setSelectedTag} refreshKey={tagKey} />
 
       {loading ? (
         <div className="grid grid-cols-2 gap-3">
@@ -111,6 +117,13 @@ export default function IdeasPage() {
                   </div>
                   {idea.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{idea.description}</p>
+                  )}
+                  {idea.tags.length > 0 && (
+                    <div className="flex gap-1 flex-wrap">
+                      {idea.tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">{tag}</Badge>
+                      ))}
+                    </div>
                   )}
                   <div className="flex items-center justify-between">
                     <div className="flex gap-1.5">
@@ -159,7 +172,7 @@ export default function IdeasPage() {
         </div>
       )}
 
-      <CreateIdeaDialog open={open} onOpenChange={setOpen} onCreated={fetchIdeas} />
+      <CreateIdeaDialog open={open} onOpenChange={setOpen} onCreated={() => { fetchIdeas(); setTagKey((k) => k + 1); }} />
 
       {convertIdea && (
         <CreateProjectDialog

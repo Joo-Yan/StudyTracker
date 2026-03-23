@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TagInput } from "@/components/shared/tag-input";
 
 interface Props {
   open: boolean;
@@ -31,6 +32,7 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
   const [color, setColor] = useState("#6366f1");
   const [frequencyType, setFrequencyType] = useState("daily");
   const [frequencyDays, setFrequencyDays] = useState<number[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   function toggleDay(day: number) {
@@ -53,6 +55,7 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
         color,
         frequencyType,
         frequencyDays: frequencyType === "weekly" ? frequencyDays : [],
+        tags,
       }),
     });
 
@@ -63,6 +66,7 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
     setColor("#6366f1");
     setFrequencyType("daily");
     setFrequencyDays([]);
+    setTags([]);
     onOpenChange(false);
     onCreated();
   }
@@ -163,6 +167,10 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
                 ))}
               </div>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label>Tags (optional)</Label>
+            <TagInput entity="habits" value={tags} onChange={setTags} />
           </div>
           <div className="flex gap-3 pt-2">
             <Button

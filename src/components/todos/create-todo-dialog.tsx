@@ -13,12 +13,16 @@ interface Props {
   onCreated: () => void;
 }
 
-const TYPES = ["project", "feature", "experiment", "thought", "other"];
+const PRIORITIES = [
+  { value: 1, label: "High" },
+  { value: 2, label: "Medium" },
+  { value: 3, label: "Low" },
+];
 
-export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState("project");
+  const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState(2);
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +30,7 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
   function reset() {
     setTitle("");
     setDescription("");
-    setType("project");
+    setDueDate("");
     setPriority(2);
     setTags([]);
   }
@@ -35,10 +39,16 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
     e.preventDefault();
     setLoading(true);
 
-    await fetch("/api/ideas", {
+    await fetch("/api/todos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, type, priority, tags }),
+      body: JSON.stringify({
+        title,
+        description: description || null,
+        dueDate: dueDate || null,
+        priority,
+        tags,
+      }),
     });
 
     setLoading(false);
@@ -53,57 +63,45 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-background rounded-xl border shadow-lg w-full max-w-md">
         <div className="p-5 border-b">
-          <h2 className="font-semibold">Capture idea</h2>
+          <h2 className="font-semibold">New todo</h2>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input
-              placeholder="What's the idea?"
+              placeholder="e.g. Read chapter 3"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              autoFocus
             />
           </div>
           <div className="space-y-2">
-            <Label>Details (optional)</Label>
+            <Label>Description (optional)</Label>
             <Textarea
-              placeholder="Describe the idea, motivation, or next steps..."
+              placeholder="Add details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+              rows={2}
             />
           </div>
           <div className="space-y-2">
-            <Label>Type</Label>
-            <div className="flex gap-2 flex-wrap">
-              {TYPES.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setType(t)}
-                  className={`px-2.5 py-1 rounded-md text-xs border transition-colors capitalize ${
-                    type === t
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border hover:bg-secondary"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            <Label>Due date (optional)</Label>
+            <Input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Priority</Label>
             <div className="flex gap-2">
-              {[["1", "High"], ["2", "Medium"], ["3", "Low"]].map(([val, label]) => (
+              {PRIORITIES.map(({ value, label }) => (
                 <button
-                  key={val}
+                  key={value}
                   type="button"
-                  onClick={() => setPriority(Number(val))}
+                  onClick={() => setPriority(value)}
                   className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
-                    priority === Number(val)
+                    priority === value
                       ? "bg-primary text-primary-foreground border-primary"
                       : "border-border hover:bg-secondary"
                   }`}
@@ -115,14 +113,19 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
           <div className="space-y-2">
             <Label>Tags (optional)</Label>
-            <TagInput entity="ideas" value={tags} onChange={setTags} />
+            <TagInput entity="todos" value={tags} onChange={setTags} />
           </div>
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onOpenChange(false); }}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => { reset(); onOpenChange(false); }}
+            >
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>
-              {loading ? "Saving..." : "Save idea"}
+              {loading ? "Creating..." : "Create todo"}
             </Button>
           </div>
         </form>

@@ -11,11 +11,12 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const todayFilter = req.nextUrl.searchParams.get("today") === "true";
+  const tag = req.nextUrl.searchParams.get("tag");
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayDow = new Date().getDay(); // 0=Sun … 6=Sat
 
   const habits = await prisma.habit.findMany({
-    where: { userId: user.id, isActive: true },
+    where: { userId: user.id, isActive: true, ...(tag ? { tags: { has: tag } } : {}) },
     include: {
       logs: {
         where: { date: todayStr },
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       frequencyDays: body.frequencyDays ?? [],
       timesPerPeriod: body.timesPerPeriod,
       reminderTime: body.reminderTime,
+      tags: body.tags ?? [],
     },
   });
 

@@ -2,13 +2,14 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, ExternalLink, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CreateContentDialog } from "@/components/content/create-content-dialog";
+import { TagFilter } from "@/components/shared/tag-filter";
 
 interface ContentItem {
   id: string;
@@ -20,6 +21,7 @@ interface ContentItem {
   priority: number;
   rating?: number;
   source?: string;
+  tags: string[];
 }
 
 const STATUS_TABS = [
@@ -48,14 +50,17 @@ export default function ContentPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
   const [open, setOpen] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagKey, setTagKey] = useState(0);
 
-  async function fetchItems() {
-    const res = await fetch("/api/content");
+  const fetchItems = useCallback(async () => {
+    const url = selectedTag ? `/api/content?tag=${encodeURIComponent(selectedTag)}` : "/api/content";
+    const res = await fetch(url);
     setItems(await res.json());
     setLoading(false);
-  }
+  }, [selectedTag]);
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
   async function advanceStatus(item: ContentItem) {
     const next = STATUS_NEXT[item.status];
@@ -90,6 +95,8 @@ export default function ContentPage() {
           Add content
         </Button>
       </div>
+
+      <TagFilter entity="content" selected={selectedTag} onSelect={setSelectedTag} refreshKey={tagKey} />
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
@@ -156,6 +163,13 @@ export default function ContentPage() {
                 {item.description && (
                   <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                 )}
+                {item.tags.length > 0 && (
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {item.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {item.status === "completed" && item.rating && (
@@ -188,7 +202,7 @@ export default function ContentPage() {
         </div>
       )}
 
-      <CreateContentDialog open={open} onOpenChange={setOpen} onCreated={fetchItems} />
+      <CreateContentDialog open={open} onOpenChange={setOpen} onCreated={() => { fetchItems(); setTagKey((k) => k + 1); }} />
     </div>
   );
 }

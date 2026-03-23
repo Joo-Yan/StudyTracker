@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TagInput } from "@/components/shared/tag-input";
 
 interface Props {
   open: boolean;
@@ -20,7 +21,17 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
   const [description, setDescription] = useState("");
   const [type, setType] = useState("article");
   const [priority, setPriority] = useState(2);
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  function reset() {
+    setTitle("");
+    setUrl("");
+    setDescription("");
+    setType("article");
+    setPriority(2);
+    setTags([]);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,11 +40,11 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
     await fetch("/api/content", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, url: url || undefined, description, type, priority }),
+      body: JSON.stringify({ title, url: url || undefined, description, type, priority, tags }),
     });
 
     setLoading(false);
-    setTitle(""); setUrl(""); setDescription(""); setType("article"); setPriority(2);
+    reset();
     onOpenChange(false);
     onCreated();
   }
@@ -112,8 +123,12 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
               ))}
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Tags (optional)</Label>
+            <TagInput entity="content" value={tags} onChange={setTags} />
+          </div>
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onOpenChange(false); }}>
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>

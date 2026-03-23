@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Flame, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { cn, todayString } from "@/lib/utils";
 import { CreateHabitDialog } from "@/components/habits/create-habit-dialog";
 import { HabitHeatmap } from "@/components/habits/habit-heatmap";
+import { TagFilter } from "@/components/shared/tag-filter";
 
 interface HabitLog {
   id: string;
@@ -28,6 +30,7 @@ interface Habit {
   icon: string;
   color: string;
   frequencyType: string;
+  tags: string[];
   logs: HabitLog[];
 }
 
@@ -36,17 +39,20 @@ export default function HabitsPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagKey, setTagKey] = useState(0);
 
-  async function fetchHabits() {
-    const res = await fetch("/api/habits");
+  const fetchHabits = useCallback(async () => {
+    const url = selectedTag ? `/api/habits?tag=${encodeURIComponent(selectedTag)}` : "/api/habits";
+    const res = await fetch(url);
     const data = await res.json();
     setHabits(data);
     setLoading(false);
-  }
+  }, [selectedTag]);
 
   useEffect(() => {
     fetchHabits();
-  }, []);
+  }, [fetchHabits]);
 
   async function handleCheckIn(habitId: string) {
     const habit = habits.find((h) => h.id === habitId);
@@ -80,6 +86,8 @@ export default function HabitsPage() {
           New habit
         </Button>
       </div>
+
+      <TagFilter entity="habits" selected={selectedTag} onSelect={setSelectedTag} refreshKey={tagKey} />
 
       {loading ? (
         <div className="space-y-2">
@@ -145,6 +153,13 @@ export default function HabitsPage() {
                       {habit.description}
                     </p>
                   )}
+                  {habit.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {habit.tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">{tag}</Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Flame className="h-3 w-3" />
@@ -172,7 +187,7 @@ export default function HabitsPage() {
       <CreateHabitDialog
         open={open}
         onOpenChange={setOpen}
-        onCreated={fetchHabits}
+        onCreated={() => { fetchHabits(); setTagKey((k) => k + 1); }}
       />
     </div>
   );

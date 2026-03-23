@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn, calcOkrProgress, calcProgress, daysUntil, formatDate } from "@/lib/utils";
 import { CreateOkrDialog } from "@/components/okr/create-okr-dialog";
 import { CheckInDialog } from "@/components/okr/checkin-dialog";
+import { TagFilter } from "@/components/shared/tag-filter";
 
 interface CheckIn {
   id: string;
@@ -43,6 +44,7 @@ interface Objective {
   description?: string;
   deadline: string;
   status: string;
+  tags: string[];
   keyResults: KeyResult[];
 }
 
@@ -51,17 +53,20 @@ export default function OkrPage() {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [checkInKr, setCheckInKr] = useState<KeyResult | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagKey, setTagKey] = useState(0);
 
-  async function fetchObjectives() {
-    const res = await fetch("/api/okr");
+  const fetchObjectives = useCallback(async () => {
+    const url = selectedTag ? `/api/okr?tag=${encodeURIComponent(selectedTag)}` : "/api/okr";
+    const res = await fetch(url);
     const data = await res.json();
     setObjectives(data);
     setLoading(false);
-  }
+  }, [selectedTag]);
 
   useEffect(() => {
     fetchObjectives();
-  }, []);
+  }, [fetchObjectives]);
 
   function getStatusBadge(obj: Objective) {
     const days = daysUntil(obj.deadline);
@@ -86,6 +91,8 @@ export default function OkrPage() {
           New objective
         </Button>
       </div>
+
+      <TagFilter entity="okr" selected={selectedTag} onSelect={setSelectedTag} refreshKey={tagKey} />
 
       {loading ? (
         <div className="space-y-4">
@@ -134,9 +141,14 @@ export default function OkrPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-                    <Clock className="h-3 w-3" />
-                    <span>Due {formatDate(obj.deadline)}</span>
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      Due {formatDate(obj.deadline)}
+                    </span>
+                    {obj.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">{tag}</Badge>
+                    ))}
                   </div>
                   {obj.keyResults.map((kr) => {
                     const krPct = calcProgress(kr.currentValue, kr.targetValue);
@@ -181,7 +193,7 @@ export default function OkrPage() {
       <CreateOkrDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onCreated={fetchObjectives}
+        onCreated={() => { fetchObjectives(); setTagKey((k) => k + 1); }}
       />
 
       {checkInKr && (

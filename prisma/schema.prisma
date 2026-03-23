@@ -21,6 +21,7 @@ model Habit {
   reminderTime  String?    // HH:MM
   startDate     DateTime   @default(now())
   isActive      Boolean    @default(true)
+  tags          String[]   @default([])
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   logs          HabitLog[]
@@ -49,6 +50,7 @@ model Objective {
   description String?
   deadline    DateTime
   status      String      @default("active") // active | completed | overdue | archived
+  tags        String[]    @default([])
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   keyResults  KeyResult[]
@@ -178,4 +180,29 @@ model Idea {
   updatedAt       DateTime @updatedAt
 
   @@index([userId])
+}
+
+model LifeCompass {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  content   String   @default("")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Todo {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    Int       @default(2) // 1=high 2=medium 3=low
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  tags        String[]  @default([])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, completed])
 }

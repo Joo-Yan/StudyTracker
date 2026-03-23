@@ -7,19 +7,23 @@ import {
   LayoutDashboard,
   Target,
   CheckCircle2,
+  ListTodo,
   FolderKanban,
   BookOpen,
   Lightbulb,
+  Compass,
   BarChart3,
 } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/habits", label: "Habits", icon: CheckCircle2 },
+  { href: "/todos", label: "Todos", icon: ListTodo },
   { href: "/okr", label: "OKR Goals", icon: Target },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/content", label: "Content", icon: BookOpen },
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
+  { href: "/compass", label: "Life Compass", icon: Compass },
   { href: "/stats", label: "Stats", icon: BarChart3 },
 ];
 

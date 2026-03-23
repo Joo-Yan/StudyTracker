@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TagInput } from "@/components/shared/tag-input";
 
 interface KrDraft {
   title: string;
@@ -25,6 +26,7 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [keyResults, setKeyResults] = useState<KrDraft[]>([
     { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 },
   ]);
@@ -58,6 +60,7 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
         title,
         description,
         deadline,
+        tags,
         keyResults: keyResults.filter((kr) => kr.title.trim()),
       }),
     });
@@ -66,6 +69,7 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
     setTitle("");
     setDescription("");
     setDeadline("");
+    setTags([]);
     setKeyResults([
       { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 },
     ]);
@@ -178,6 +182,10 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
             ))}
           </div>
 
+          <div className="space-y-2">
+            <Label>Tags (optional)</Label>
+            <TagInput entity="okr" value={tags} onChange={setTags} />
+          </div>
           <div className="flex gap-3 pt-2">
             <Button
               type="button"

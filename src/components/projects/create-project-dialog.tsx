@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TagInput } from "@/components/shared/tag-input";
 
 interface Props {
   open: boolean;
@@ -24,7 +25,16 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#6366f1");
   const [targetDate, setTargetDate] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  function reset() {
+    setTitle(defaultTitle ?? "");
+    setDescription("");
+    setColor("#6366f1");
+    setTargetDate("");
+    setTags([]);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +43,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, color, targetDate: targetDate || undefined, linkedIdeaId }),
+      body: JSON.stringify({ title, description, color, targetDate: targetDate || undefined, linkedIdeaId, tags }),
     });
     const project = await res.json();
 
@@ -50,6 +60,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
     setDescription("");
     setColor("#6366f1");
     setTargetDate("");
+    setTags([]);
     onOpenChange(false);
     onCreated();
   }
@@ -105,8 +116,12 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
               ))}
             </div>
           </div>
+          <div className="space-y-2">
+            <Label>Tags (optional)</Label>
+            <TagInput entity="projects" value={tags} onChange={setTags} />
+          </div>
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onOpenChange(false); }}>
               Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={loading}>

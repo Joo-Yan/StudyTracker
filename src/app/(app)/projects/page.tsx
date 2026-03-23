@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Circle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn, calcProgress, formatDateShort, daysUntil } from "@/lib/utils";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
+import { TagFilter } from "@/components/shared/tag-filter";
 import Link from "next/link";
 
 interface Task { id: string; status: string }
@@ -21,6 +22,7 @@ interface Project {
   status: string;
   color: string;
   targetDate?: string;
+  tags: string[];
   milestones: Milestone[];
 }
 
@@ -50,14 +52,17 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagKey, setTagKey] = useState(0);
 
-  async function fetchProjects() {
-    const res = await fetch("/api/projects");
+  const fetchProjects = useCallback(async () => {
+    const url = selectedTag ? `/api/projects?tag=${encodeURIComponent(selectedTag)}` : "/api/projects";
+    const res = await fetch(url);
     setProjects(await res.json());
     setLoading(false);
-  }
+  }, [selectedTag]);
 
-  useEffect(() => { fetchProjects(); }, []);
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
   const grouped = STATUS_GROUPS.map((g) => ({
     ...g,
@@ -78,6 +83,8 @@ export default function ProjectsPage() {
           New project
         </Button>
       </div>
+
+      <TagFilter entity="projects" selected={selectedTag} onSelect={setSelectedTag} refreshKey={tagKey} />
 
       {loading ? (
         <div className="space-y-2">
@@ -148,6 +155,13 @@ export default function ProjectsPage() {
                                   {project.description}
                                 </p>
                               )}
+                              {project.tags.length > 0 && (
+                                <div className="flex gap-1 mt-1.5 flex-wrap">
+                                  {project.tags.map((tag) => (
+                                    <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">{tag}</Badge>
+                                  ))}
+                                </div>
+                              )}
                               <div className="mt-2 space-y-1">
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                                   <span>
@@ -170,7 +184,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <CreateProjectDialog open={open} onOpenChange={setOpen} onCreated={fetchProjects} />
+      <CreateProjectDialog open={open} onOpenChange={setOpen} onCreated={() => { fetchProjects(); setTagKey((k) => k + 1); }} />
     </div>
   );
 }
