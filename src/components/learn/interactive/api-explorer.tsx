@@ -28,16 +28,16 @@ const endpoints: MockEndpoint[] = [
     responseStatus: 200,
     responseBody: JSON.stringify(
       [
-        { id: 1, name: "Read 30 min", streak: 12, completed_today: true },
-        { id: 2, name: "Exercise", streak: 5, completed_today: false },
-        { id: 3, name: "Meditate", streak: 20, completed_today: true },
+        { id: 1, title: "Read 30 min", streak: 12, completed_today: true },
+        { id: 2, title: "Exercise", streak: 5, completed_today: false },
+        { id: 3, title: "Meditate", streak: 20, completed_today: true },
       ],
       null,
       2
     ),
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Bearer eyJhbG...JWT_TOKEN",
+      Cookie: "sb-auth-token=<httponly-session-cookie>",
     },
   },
   {
@@ -47,16 +47,16 @@ const endpoints: MockEndpoint[] = [
       en: "Create a new habit",
       zh: "创建新习惯",
     },
-    requestBody: JSON.stringify({ name: "Learn coding", frequency: "daily" }, null, 2),
+    requestBody: JSON.stringify({ title: "Learn coding", frequencyType: "daily" }, null, 2),
     responseStatus: 201,
     responseBody: JSON.stringify(
-      { id: 4, name: "Learn coding", frequency: "daily", streak: 0, createdAt: "2025-01-15T10:30:00Z" },
+      { id: 4, title: "Learn coding", frequencyType: "daily", streak: 0, createdAt: "2025-01-15T10:30:00Z" },
       null,
       2
     ),
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Bearer eyJhbG...JWT_TOKEN",
+      Cookie: "sb-auth-token=<httponly-session-cookie>",
     },
   },
   {
@@ -78,7 +78,7 @@ const endpoints: MockEndpoint[] = [
     ),
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Bearer eyJhbG...JWT_TOKEN",
+      Cookie: "sb-auth-token=<httponly-session-cookie>",
     },
   },
 ];

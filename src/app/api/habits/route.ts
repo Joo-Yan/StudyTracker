@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
 
   const todayFilter = req.nextUrl.searchParams.get("today") === "true";
   const tag = req.nextUrl.searchParams.get("tag");
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const dateParam = req.nextUrl.searchParams.get("date");
+  const todayStr =
+    dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+      ? dateParam
+      : new Date().toISOString().slice(0, 10);
   const todayDow = new Date().getDay(); // 0=Sun … 6=Sat
 
   const habits = await prisma.habit.findMany({

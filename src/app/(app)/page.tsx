@@ -28,7 +28,7 @@ export default function DashboardPage() {
   async function fetchData() {
     const today = todayString();
     const [habitsRes, okrRes, todosRes] = await Promise.all([
-      fetch("/api/habits?today=true"),
+      fetch(`/api/habits?today=true&date=${encodeURIComponent(today)}`),
       fetch("/api/okr"),
       fetch(`/api/todos?due=today&date=${encodeURIComponent(today)}`),
     ]);
@@ -51,10 +51,23 @@ export default function DashboardPage() {
   }
 
   async function handleCheckIn(habitId: string, doneToday: boolean) {
+    const today = todayString();
+    // Optimistic update
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id !== habitId) return h;
+        return {
+          ...h,
+          logs: doneToday
+            ? h.logs.filter((l) => !(l.date === today && l.completed))
+            : [...h.logs.filter((l) => l.date !== today), { id: "optimistic", date: today, completed: true }],
+        };
+      })
+    );
     await fetch(`/api/habits/${habitId}/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: !doneToday }),
+      body: JSON.stringify({ completed: !doneToday, date: today }),
     });
     fetchData();
   }
@@ -170,17 +183,23 @@ export default function DashboardPage() {
           </section>
 
           {/* Today's Todos */}
-          {(loading || todayTodos.length > 0) && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-200 flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-                  Focus of the Day
-                </h2>
-                <Link href="/todos" className="text-xs font-bold text-stone-400 hover:text-stone-600 transition-colors uppercase tracking-widest">
-                  View List
-                </Link>
+          <section className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-200 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                Focus of the Day
+              </h2>
+              <Link href="/todos" className="text-xs font-bold text-stone-400 hover:text-stone-600 transition-colors uppercase tracking-widest">
+                View List
+              </Link>
+            </div>
+            {loading ? (
+              <div className="h-16 rounded-3xl bg-stone-100/50 animate-pulse" />
+            ) : todayTodos.length === 0 ? (
+              <div className="bg-white/40 dark:bg-stone-900/40 rounded-3xl border border-dashed border-stone-200 dark:border-stone-700 p-6 text-center">
+                <p className="text-stone-400 text-sm italic">No tasks due today.</p>
               </div>
+            ) : (
               <div className="bg-white/40 dark:bg-stone-900/40 rounded-3xl border border-stone-100 dark:border-stone-800 p-2 shadow-soft">
                 {todayTodos.map((todo) => {
                   const isOverdue = todo.dueDate ? !todo.completed && isDateOverdue(todo.dueDate) : false;
@@ -216,8 +235,8 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
-            </section>
-          )}
+            )}
+          </section>
         </div>
 
         {/* Side Column */}

@@ -1,35 +1,41 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
 import { useLearnStore } from "@/lib/learn/progress-store";
 import type { Locale } from "@/lib/learn/i18n";
 import { ChapterLayout } from "@/components/learn/content/chapter-layout";
-import { Chapter1WhatIsWebApp } from "@/components/learn/chapters/chapter-1-what-is-webapp";
-import { Chapter2ProjectStructure } from "@/components/learn/chapters/chapter-2-project-structure";
-import { Chapter3Frontend } from "@/components/learn/chapters/chapter-3-frontend";
-import { Chapter4BackendApi } from "@/components/learn/chapters/chapter-4-backend-api";
-import { Chapter5Database } from "@/components/learn/chapters/chapter-5-database";
-import { Chapter6Authentication } from "@/components/learn/chapters/chapter-6-authentication";
-import { Chapter7TechStack } from "@/components/learn/chapters/chapter-7-tech-stack";
-import { Chapter8Deployment } from "@/components/learn/chapters/chapter-8-deployment";
 import { getContent } from "@/lib/learn/i18n";
 
 interface ChapterPageClientProps {
   slug: string;
 }
 
-const chapterComponents: Record<
-  string,
-  ComponentType<{ locale: Locale }>
-> = {
-  "what-is-a-web-app": Chapter1WhatIsWebApp,
-  "project-structure": Chapter2ProjectStructure,
-  "frontend": Chapter3Frontend,
-  "backend-and-api": Chapter4BackendApi,
-  "database": Chapter5Database,
-  "authentication": Chapter6Authentication,
-  "tech-stack": Chapter7TechStack,
-  "deployment": Chapter8Deployment,
+const chapterComponents: Record<string, ComponentType<{ locale: Locale }>> = {
+  "what-is-a-web-app": dynamic(() =>
+    import("@/components/learn/chapters/chapter-1-what-is-webapp").then((m) => ({ default: m.Chapter1WhatIsWebApp }))
+  ),
+  "project-structure": dynamic(() =>
+    import("@/components/learn/chapters/chapter-2-project-structure").then((m) => ({ default: m.Chapter2ProjectStructure }))
+  ),
+  "frontend": dynamic(() =>
+    import("@/components/learn/chapters/chapter-3-frontend").then((m) => ({ default: m.Chapter3Frontend }))
+  ),
+  "backend-and-api": dynamic(() =>
+    import("@/components/learn/chapters/chapter-4-backend-api").then((m) => ({ default: m.Chapter4BackendApi }))
+  ),
+  "database": dynamic(() =>
+    import("@/components/learn/chapters/chapter-5-database").then((m) => ({ default: m.Chapter5Database }))
+  ),
+  "authentication": dynamic(() =>
+    import("@/components/learn/chapters/chapter-6-authentication").then((m) => ({ default: m.Chapter6Authentication }))
+  ),
+  "tech-stack": dynamic(() =>
+    import("@/components/learn/chapters/chapter-7-tech-stack").then((m) => ({ default: m.Chapter7TechStack }))
+  ),
+  "deployment": dynamic(() =>
+    import("@/components/learn/chapters/chapter-8-deployment").then((m) => ({ default: m.Chapter8Deployment }))
+  ),
 };
 
 export function ChapterPageClient({ slug }: ChapterPageClientProps) {

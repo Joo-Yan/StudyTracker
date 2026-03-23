@@ -163,7 +163,7 @@ export function ArchitectureDiagram({ locale }: Props) {
                   d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
                   stroke={isHighlighted ? "#3b82f6" : "#d1d5db"}
                   strokeWidth={isHighlighted ? 0.6 : 0.3}
-                  strokeDasharray={isHighlighted ? "none" : "1.5 1"}
+                  strokeDasharray={isHighlighted ? undefined : "1.5 1"}
                   fill="none"
                   initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}

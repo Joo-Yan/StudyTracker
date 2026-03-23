@@ -71,8 +71,8 @@ const steps: DeployStep[] = [
   {
     label: { en: "Environment Variables", zh: "环境变量" },
     description: {
-      en: "Vercel injects your secret environment variables (DATABASE_URL, SUPABASE_KEY) at build time. These are never exposed in the browser.",
-      zh: "Vercel 在构建时注入你的秘密环境变量（DATABASE_URL、SUPABASE_KEY）。这些永远不会暴露在浏览器中。",
+      en: "Vercel injects environment variables at build time. Server-only vars like DATABASE_URL are never sent to the browser. NEXT_PUBLIC_* vars are intentionally bundled into client-side code so the browser can use them.",
+      zh: "Vercel 在构建时注入环境变量。服务器专用变量（如 DATABASE_URL）永远不会发送到浏览器。带 NEXT_PUBLIC_ 前缀的变量则会被打包进客户端代码，浏览器可以访问它们。",
     },
     duration: 800,
     icon: "🔑",
