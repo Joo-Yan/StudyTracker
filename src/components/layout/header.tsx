@@ -23,7 +23,7 @@ export function Header() {
   }
 
   return (
-    <header className="h-12 border-b flex items-center justify-end px-6 shrink-0">
+    <header className="h-16 flex items-center justify-end px-8 shrink-0">
       <div className="flex items-center gap-3 min-w-[140px] justify-end">
         {isDemo ? (
           <>

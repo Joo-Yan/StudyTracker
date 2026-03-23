@@ -14,7 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Header />
             <main className="flex-1 overflow-y-auto">
               <AuthGate>
-                <div className="max-w-4xl mx-auto p-6">{children}</div>
+                <div className="max-w-6xl mx-auto p-8 lg:p-12">{children}</div>
               </AuthGate>
             </main>
           </div>
