@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { isValidDateOnly, parseDateOnlyToUtcDate } from "@/lib/todo-utils";
@@ -23,7 +24,7 @@ export async function PATCH(
   const existing = await prisma.todo.findFirst({ where: { id, userId: user.id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data: Record<string, unknown> = {};
+  const data: Prisma.TodoUpdateInput = {};
   if (body.title !== undefined) {
     if (typeof body.title !== "string" || !body.title.trim()) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -46,13 +47,13 @@ export async function PATCH(
     if (!Number.isInteger(body.priority) || ![1, 2, 3].includes(body.priority as number)) {
       return NextResponse.json({ error: "priority must be 1, 2, or 3" }, { status: 400 });
     }
-    data.priority = body.priority;
+    data.priority = body.priority as number;
   }
   if (body.tags !== undefined) {
-    if (!Array.isArray(body.tags)) {
+    if (!Array.isArray(body.tags) || body.tags.some((tag) => typeof tag !== "string")) {
       return NextResponse.json({ error: "tags must be an array" }, { status: 400 });
     }
-    data.tags = body.tags;
+    data.tags = body.tags as string[];
   }
   if (body.completed !== undefined) {
     if (typeof body.completed !== "boolean") {
