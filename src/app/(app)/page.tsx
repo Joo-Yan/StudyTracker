@@ -26,10 +26,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   async function fetchData() {
+    const today = todayString();
     const [habitsRes, okrRes, todosRes] = await Promise.all([
       fetch("/api/habits?today=true"),
       fetch("/api/okr"),
-      fetch("/api/todos?due=today"),
+      fetch(`/api/todos?due=today&date=${encodeURIComponent(today)}`),
     ]);
     if (habitsRes.ok) setHabits(await habitsRes.json());
     if (okrRes.ok) setObjectives(await okrRes.json());

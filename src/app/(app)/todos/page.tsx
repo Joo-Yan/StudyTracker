@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CreateTodoDialog } from "@/components/todos/create-todo-dialog";
 import { TagFilter } from "@/components/shared/tag-filter";
-import { cn, formatDate } from "@/lib/utils";
-import { isDateOverdue } from "@/lib/todo-utils";
+import { cn } from "@/lib/utils";
+import { formatTodoDueDate, isDateOverdue } from "@/lib/todo-utils";
 
 interface Todo {
   id: string;
@@ -68,7 +68,7 @@ function TodoRow({ todo, onToggle, onDelete }: TodoRowProps) {
           {todo.dueDate && (
             <span className={cn("flex items-center gap-1 text-xs", overdue ? "text-red-600 font-medium" : "text-muted-foreground")}>
               <Calendar className="h-3 w-3" />
-              {overdue ? "Overdue · " : ""}{formatDate(new Date(todo.dueDate))}
+              {overdue ? "Overdue · " : ""}{formatTodoDueDate(todo.dueDate)}
             </span>
           )}
           <Badge variant="secondary" className={cn("text-xs px-1.5 py-0", PRIORITY_COLOR[todo.priority])}>

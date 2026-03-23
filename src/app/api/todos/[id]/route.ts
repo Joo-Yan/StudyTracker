@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-
-function isInvalidDate(value: string) {
-  return Number.isNaN(new Date(value).getTime());
-}
+import { isValidDateOnly, parseDateOnlyToUtcDate } from "@/lib/todo-utils";
 
 export async function PATCH(
   req: NextRequest,
@@ -39,10 +36,10 @@ export async function PATCH(
   if (body.dueDate !== undefined) {
     if (body.dueDate === null || body.dueDate === "") {
       data.dueDate = null;
-    } else if (typeof body.dueDate !== "string" || isInvalidDate(body.dueDate)) {
-      return NextResponse.json({ error: "dueDate must be a valid date" }, { status: 400 });
+    } else if (typeof body.dueDate !== "string" || !isValidDateOnly(body.dueDate)) {
+      return NextResponse.json({ error: "dueDate must be YYYY-MM-DD" }, { status: 400 });
     } else {
-      data.dueDate = new Date(body.dueDate);
+      data.dueDate = parseDateOnlyToUtcDate(body.dueDate);
     }
   }
   if (body.priority !== undefined) {

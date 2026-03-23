@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getUtcDayBounds, isValidDateOnly, parseDateOnlyToUtcDate } from "@/lib/todo-utils";
+import { todayString } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -8,18 +10,23 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const due = req.nextUrl.searchParams.get("due");
+  const date = req.nextUrl.searchParams.get("date");
   const tag = req.nextUrl.searchParams.get("tag");
-
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const targetDay = due === "today" ? date ?? todayString() : null;
+  if (date && !isValidDateOnly(date)) {
+    return NextResponse.json({ error: "date must be YYYY-MM-DD" }, { status: 400 });
+  }
+  const todayBounds = targetDay ? getUtcDayBounds(targetDay) : null;
+  if (targetDay && !todayBounds) {
+    return NextResponse.json({ error: "date must be YYYY-MM-DD" }, { status: 400 });
+  }
 
   const todos = await prisma.todo.findMany({
     where: {
       userId: user.id,
       ...(due === "today" ? {
         completed: false,
-        dueDate: { gte: todayStart, lte: todayEnd },
+        dueDate: { gte: todayBounds!.start, lte: todayBounds!.end },
       } : {}),
       ...(tag ? { tags: { has: tag } } : {}),
     },
@@ -55,6 +62,11 @@ export async function POST(req: NextRequest) {
   if (body.tags !== undefined && !Array.isArray(body.tags)) {
     return NextResponse.json({ error: "tags must be an array" }, { status: 400 });
   }
+  if (body.dueDate !== undefined && body.dueDate !== null) {
+    if (typeof body.dueDate !== "string" || !isValidDateOnly(body.dueDate)) {
+      return NextResponse.json({ error: "dueDate must be YYYY-MM-DD" }, { status: 400 });
+    }
+  }
 
   try {
     const todo = await prisma.todo.create({
@@ -62,7 +74,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         title: body.title.trim(),
         description: typeof body.description === "string" ? body.description : null,
-        dueDate: body.dueDate ? new Date(body.dueDate as string) : null,
+        dueDate: typeof body.dueDate === "string" ? parseDateOnlyToUtcDate(body.dueDate) : null,
         priority: (body.priority as number) ?? 2,
         tags: (body.tags as string[]) ?? [],
       },

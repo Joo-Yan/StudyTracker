@@ -26,7 +26,9 @@ export function TagFilter({ entity, selected, onSelect, refreshKey }: Props) {
     return () => controller.abort();
   }, [entity, refreshKey]);
 
-  if (tags.length === 0) return null;
+  const visibleTags = selected && !tags.includes(selected) ? [selected, ...tags] : tags;
+
+  if (visibleTags.length === 0 && selected === null) return null;
 
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -37,7 +39,7 @@ export function TagFilter({ entity, selected, onSelect, refreshKey }: Props) {
       >
         All
       </Badge>
-      {tags.map((tag) => (
+      {visibleTags.map((tag) => (
         <Badge
           key={tag}
           variant={selected === tag ? "default" : "outline"}
