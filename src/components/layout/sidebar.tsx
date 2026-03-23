@@ -34,7 +34,7 @@ export function Sidebar() {
     <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 px-4 py-6">
       <div className="mb-8 px-4 flex items-center gap-2">
         <div className="h-6 w-6 bg-primary rounded-full" />
-        <h1 className="font-bold text-lg tracking-tight">StudyTracker</h1>
+        <h1 className="font-bold text-lg tracking-tight">LearningTracker</h1>
       </div>
       
       <nav className="flex-1 space-y-2">

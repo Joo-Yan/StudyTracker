@@ -5,7 +5,7 @@ import "./globals.css";
 const manrope = Manrope({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "StudyTracker",
+  title: "LearningTracker",
   description: "Personal learning and goal tracking app",
 };
 

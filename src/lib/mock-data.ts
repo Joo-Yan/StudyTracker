@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// mock-data.ts – rich, realistic demo data for StudyTracker
+// mock-data.ts – rich, realistic demo data for LearningTracker
 // All dates are computed relative to "today" so the demo stays fresh.
 // Zero imports – plain functions only.
 // ---------------------------------------------------------------------------
@@ -217,7 +217,7 @@ function buildTodos(): any[] {
     {
       id: uuid(),
       userId: "demo",
-      title: "Set up CI/CD pipeline for StudyTracker",
+      title: "Set up CI/CD pipeline for LearningTracker",
       description: "GitHub Actions workflow for lint, test, and deploy.",
       dueDate: isoAgo(5),
       priority: 2,
@@ -388,7 +388,7 @@ function buildObjectives(): any[] {
           status: "active",
           checkIns: buildCheckIns(kr1a, [
             { value: 0, note: "Starting from scratch", daysBack: 45 },
-            { value: 1, note: "Finished StudyTracker MVP", daysBack: 25 },
+            { value: 1, note: "Finished LearningTracker MVP", daysBack: 25 },
             { value: 2, note: "Shipped blog platform v0.1", daysBack: 7 },
           ]),
         },
@@ -521,7 +521,7 @@ function buildTask(
 }
 
 function buildProjects(): any[] {
-  // Project 1 – StudyTracker App
+  // Project 1 – LearningTracker App
   const p1Id = uuid();
   const m1aId = uuid();
   const m1bId = uuid();
@@ -538,7 +538,7 @@ function buildProjects(): any[] {
     {
       id: p1Id,
       userId: "demo",
-      title: "StudyTracker App",
+      title: "LearningTracker App",
       description:
         "A full-stack productivity app for students – habits, OKRs, todo lists, and a study compass.",
       status: "active",
