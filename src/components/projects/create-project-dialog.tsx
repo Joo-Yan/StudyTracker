@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ModalShell,
+  ModalShellBody,
+  ModalShellFooter,
+  ModalShellHeader,
+} from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
 
 interface Props {
@@ -21,6 +27,7 @@ const COLORS = [
 ];
 
 export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaId, defaultTitle }: Props) {
+  const formId = "create-project-form";
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#6366f1");
@@ -68,12 +75,12 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-xl border shadow-lg w-full max-w-md">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold">New project</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+    <ModalShell maxWidth="md">
+      <ModalShellHeader>
+        <h2 className="font-semibold">New project</h2>
+      </ModalShellHeader>
+      <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <ModalShellBody className="space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input
@@ -102,14 +109,14 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
           </div>
           <div className="space-y-2">
             <Label>Color</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full border-2 transition-all ${
-                    color === c ? "border-foreground scale-110" : "border-transparent"
+                  className={`h-7 w-7 rounded-full border-2 transition-all ${
+                    color === c ? "scale-110 border-foreground" : "border-transparent"
                   }`}
                   style={{ backgroundColor: c }}
                 />
@@ -120,16 +127,26 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
             <Label>Tags (optional)</Label>
             <TagInput entity="projects" value={tags} onChange={setTags} />
           </div>
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); onOpenChange(false); }}>
+        </ModalShellBody>
+        <ModalShellFooter>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                reset();
+                onOpenChange(false);
+              }}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button type="submit" form={formId} className="flex-1" disabled={loading}>
               {loading ? "Creating..." : "Create project"}
             </Button>
           </div>
-        </form>
-      </div>
-    </div>
+        </ModalShellFooter>
+      </form>
+    </ModalShell>
   );
 }

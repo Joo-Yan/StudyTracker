@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ interface Props {
 export function TagInput({ entity, value, onChange, placeholder = "Add tag..." }: Props) {
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +37,6 @@ export function TagInput({ entity, value, onChange, placeholder = "Add tag..." }
       onChange([...value, trimmed]);
     }
     setInput("");
-    setShowSuggestions(false);
   }
 
   function removeTag(tag: string) {
@@ -47,6 +47,8 @@ export function TagInput({ entity, value, onChange, placeholder = "Add tag..." }
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       if (input.trim()) addTag(input);
+    } else if (e.key === "Escape") {
+      setIsFocused(false);
     } else if (e.key === "Backspace" && !input && value.length > 0) {
       onChange(value.slice(0, -1));
     }
@@ -55,42 +57,72 @@ export function TagInput({ entity, value, onChange, placeholder = "Add tag..." }
   const filtered = suggestions.filter(
     (s) => s.includes(input.toLowerCase()) && !value.includes(s)
   );
+  const open = isFocused && input.trim().length > 0 && filtered.length > 0;
 
   return (
-    <div ref={containerRef} className="relative">
-      <div className="flex flex-wrap gap-1.5 p-2 border rounded-md bg-background min-h-[2.5rem] focus-within:ring-1 focus-within:ring-ring">
-        {value.map((tag) => (
-          <Badge key={tag} variant="secondary" className="gap-1 text-xs">
-            {tag}
-            <button type="button" onClick={() => removeTag(tag)} className="hover:text-destructive">
-              <X className="h-2.5 w-2.5" />
-            </button>
-          </Badge>
-        ))}
-        <Input
-          value={input}
-          onChange={(e) => { setInput(e.target.value); setShowSuggestions(true); }}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          placeholder={value.length === 0 ? placeholder : ""}
-          className="border-0 p-0 h-auto focus-visible:ring-0 text-xs flex-1 min-w-[80px] bg-transparent"
-        />
-      </div>
-      {showSuggestions && input && filtered.length > 0 && (
-        <div className="absolute z-10 top-full mt-1 w-full bg-background border rounded-md shadow-md max-h-40 overflow-y-auto">
+    <Popover.Root open={open} onOpenChange={setIsFocused}>
+      <Popover.Anchor asChild>
+        <div ref={containerRef} className="relative">
+          <div className="flex min-h-[2.5rem] flex-wrap gap-1.5 rounded-md border bg-background p-2 focus-within:ring-1 focus-within:ring-ring">
+            {value.map((tag) => (
+              <Badge key={tag} variant="secondary" className="gap-1 text-xs">
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="hover:text-destructive"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </Badge>
+            ))}
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => {
+                requestAnimationFrame(() => {
+                  if (!containerRef.current?.contains(document.activeElement)) {
+                    setIsFocused(false);
+                  }
+                });
+              }}
+              placeholder={value.length === 0 ? placeholder : ""}
+              className="h-auto min-w-[80px] flex-1 border-0 bg-transparent p-0 text-xs focus-visible:ring-0"
+            />
+          </div>
+        </div>
+      </Popover.Anchor>
+      <Popover.Portal>
+        <Popover.Content
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          collisionPadding={8}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          className="z-50 overflow-y-auto rounded-md border bg-background shadow-md"
+          style={{
+            width: "var(--radix-popper-anchor-width)",
+            maxHeight: "min(10rem, var(--radix-popper-available-height))",
+          }}
+        >
           {filtered.slice(0, 8).map((s) => (
             <button
               key={s}
               type="button"
-              className="w-full text-left px-3 py-1.5 text-xs hover:bg-secondary"
-              onMouseDown={() => addTag(s)}
+              className="w-full px-3 py-1.5 text-left text-xs hover:bg-secondary"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                addTag(s);
+              }}
             >
               {s}
             </button>
           ))}
-        </div>
-      )}
-    </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

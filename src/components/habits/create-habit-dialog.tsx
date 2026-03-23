@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ModalShell,
+  ModalShellBody,
+  ModalShellFooter,
+  ModalShellHeader,
+} from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
 
 interface Props {
@@ -26,6 +32,7 @@ const COLORS = [
 ];
 
 export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
+  const formId = "create-habit-form";
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState("✓");
@@ -74,12 +81,12 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-xl border shadow-lg w-full max-w-md">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold">New habit</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+    <ModalShell maxWidth="md">
+      <ModalShellHeader>
+        <h2 className="font-semibold">New habit</h2>
+      </ModalShellHeader>
+      <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <ModalShellBody className="space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input
@@ -100,13 +107,13 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
           <div className="space-y-2">
             <Label>Icon</Label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               {ICONS.map((ic) => (
                 <button
                   key={ic}
                   type="button"
                   onClick={() => setIcon(ic)}
-                  className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center border-2 transition-colors ${
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg border-2 text-lg transition-colors ${
                     icon === ic ? "border-primary" : "border-border"
                   }`}
                 >
@@ -117,14 +124,14 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
           <div className="space-y-2">
             <Label>Color</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full border-2 transition-all ${
-                    color === c ? "border-foreground scale-110" : "border-transparent"
+                  className={`h-7 w-7 rounded-full border-2 transition-all ${
+                    color === c ? "scale-110 border-foreground" : "border-transparent"
                   }`}
                   style={{ backgroundColor: c }}
                 />
@@ -133,15 +140,18 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
           <div className="space-y-2">
             <Label>Frequency</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {["daily", "weekly", "monthly"].map((f) => (
                 <button
                   key={f}
                   type="button"
-                  onClick={() => { setFrequencyType(f); setFrequencyDays([]); }}
-                  className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                  onClick={() => {
+                    setFrequencyType(f);
+                    setFrequencyDays([]);
+                  }}
+                  className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                     frequencyType === f
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "border-border hover:bg-secondary"
                   }`}
                 >
@@ -150,15 +160,15 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
               ))}
             </div>
             {frequencyType === "weekly" && (
-              <div className="flex gap-1.5 mt-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => toggleDay(i)}
-                    className={`w-8 h-8 rounded-full text-xs font-medium border transition-colors ${
+                    className={`h-8 w-8 rounded-full border text-xs font-medium transition-colors ${
                       frequencyDays.includes(i)
-                        ? "bg-primary text-primary-foreground border-primary"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border hover:bg-secondary"
                     }`}
                   >
@@ -172,7 +182,9 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
             <Label>Tags (optional)</Label>
             <TagInput entity="habits" value={tags} onChange={setTags} />
           </div>
-          <div className="flex gap-3 pt-2">
+        </ModalShellBody>
+        <ModalShellFooter>
+          <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
@@ -181,12 +193,12 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button type="submit" form={formId} className="flex-1" disabled={loading}>
               {loading ? "Creating..." : "Create habit"}
             </Button>
           </div>
-        </form>
-      </div>
-    </div>
+        </ModalShellFooter>
+      </form>
+    </ModalShell>
   );
 }

@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  ModalShell,
+  ModalShellBody,
+  ModalShellFooter,
+  ModalShellHeader,
+} from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
 
 interface Props {
@@ -20,6 +26,7 @@ const PRIORITIES = [
 ];
 
 export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
+  const formId = "create-todo-form";
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -60,12 +67,12 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-xl border shadow-lg w-full max-w-md">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold">New todo</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+    <ModalShell maxWidth="md">
+      <ModalShellHeader>
+        <h2 className="font-semibold">New todo</h2>
+      </ModalShellHeader>
+      <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <ModalShellBody className="space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input
@@ -94,15 +101,15 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
           <div className="space-y-2">
             <Label>Priority</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {PRIORITIES.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setPriority(value)}
-                  className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                  className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                     priority === value
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "border-border hover:bg-secondary"
                   }`}
                 >
@@ -115,21 +122,26 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
             <Label>Tags (optional)</Label>
             <TagInput entity="todos" value={tags} onChange={setTags} />
           </div>
-          <div className="flex gap-3 pt-2">
+        </ModalShellBody>
+        <ModalShellFooter>
+          <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={() => { reset(); onOpenChange(false); }}
+              onClick={() => {
+                reset();
+                onOpenChange(false);
+              }}
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button type="submit" form={formId} className="flex-1" disabled={loading}>
               {loading ? "Creating..." : "Create todo"}
             </Button>
           </div>
-        </form>
-      </div>
-    </div>
+        </ModalShellFooter>
+      </form>
+    </ModalShell>
   );
 }

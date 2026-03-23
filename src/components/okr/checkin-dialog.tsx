@@ -6,6 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import {
+  ModalShell,
+  ModalShellBody,
+  ModalShellFooter,
+  ModalShellHeader,
+} from "@/components/ui/modal-shell";
 import { calcProgress } from "@/lib/utils";
 
 interface KeyResult {
@@ -23,6 +29,7 @@ interface Props {
 }
 
 export function CheckInDialog({ keyResult, onClose, onCreated }: Props) {
+  const formId = "okr-checkin-form";
   const [value, setValue] = useState(keyResult.currentValue.toString());
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,13 +53,13 @@ export function CheckInDialog({ keyResult, onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-xl border shadow-lg w-full max-w-sm">
-        <div className="p-5 border-b">
-          <h2 className="font-semibold">Update progress</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{keyResult.title}</p>
-        </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+    <ModalShell maxWidth="sm">
+      <ModalShellHeader>
+        <h2 className="font-semibold">Update progress</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">{keyResult.title}</p>
+      </ModalShellHeader>
+      <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <ModalShellBody className="space-y-4">
           <div className="space-y-2">
             <Label>
               Current value{keyResult.unit ? ` (${keyResult.unit})` : ""}
@@ -68,7 +75,7 @@ export function CheckInDialog({ keyResult, onClose, onCreated }: Props) {
                 required
                 className="flex-1"
               />
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
+              <span className="whitespace-nowrap text-sm text-muted-foreground">
                 / {keyResult.targetValue}
                 {keyResult.unit ? ` ${keyResult.unit}` : ""}
               </span>
@@ -90,7 +97,9 @@ export function CheckInDialog({ keyResult, onClose, onCreated }: Props) {
               rows={2}
             />
           </div>
-          <div className="flex gap-3 pt-1">
+        </ModalShellBody>
+        <ModalShellFooter>
+          <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
@@ -99,12 +108,12 @@ export function CheckInDialog({ keyResult, onClose, onCreated }: Props) {
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button type="submit" form={formId} className="flex-1" disabled={loading}>
               {loading ? "Saving..." : "Save"}
             </Button>
           </div>
-        </form>
-      </div>
-    </div>
+        </ModalShellFooter>
+      </form>
+    </ModalShell>
   );
 }
