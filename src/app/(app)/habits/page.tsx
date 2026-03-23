@@ -43,10 +43,15 @@ export default function HabitsPage() {
   const [tagKey, setTagKey] = useState(0);
 
   const fetchHabits = useCallback(async () => {
-    const url = selectedTag ? `/api/habits?tag=${encodeURIComponent(selectedTag)}` : "/api/habits";
+    const date = todayString();
+    const url = selectedTag
+      ? `/api/habits?tag=${encodeURIComponent(selectedTag)}&date=${encodeURIComponent(date)}`
+      : `/api/habits?date=${encodeURIComponent(date)}`;
     const res = await fetch(url);
-    const data = await res.json();
-    setHabits(data);
+    if (res.ok) {
+      const data = await res.json();
+      setHabits(data);
+    }
     setLoading(false);
   }, [selectedTag]);
 
@@ -55,13 +60,27 @@ export default function HabitsPage() {
   }, [fetchHabits]);
 
   async function handleCheckIn(habitId: string) {
+    const today = todayString();
     const habit = habits.find((h) => h.id === habitId);
-    const alreadyDone = habit?.logs.some((l) => l.date === todayString() && l.completed);
+    const alreadyDone = habit?.logs.some((l) => l.date === today && l.completed);
+
+    // Optimistic update
+    setHabits((prev) =>
+      prev.map((h) => {
+        if (h.id !== habitId) return h;
+        return {
+          ...h,
+          logs: alreadyDone
+            ? h.logs.filter((l) => !(l.date === today && l.completed))
+            : [...h.logs.filter((l) => l.date !== today), { id: "optimistic", date: today, completed: true }],
+        };
+      })
+    );
 
     await fetch(`/api/habits/${habitId}/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: !alreadyDone }),
+      body: JSON.stringify({ completed: !alreadyDone, date: today }),
     });
 
     fetchHabits();
