@@ -13,6 +13,7 @@ import {
   Lightbulb,
   Compass,
   BarChart3,
+  GraduationCap,
 } from "lucide-react";
 
 const navItems = [
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/ideas", label: "Ideas", icon: Lightbulb },
   { href: "/compass", label: "Life Compass", icon: Compass },
   { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/learn", label: "Learn", icon: GraduationCap },
 ];
 
 export function Sidebar() {
