@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { isHabitScheduledToday } from "@/lib/habit-schedule";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -28,14 +29,7 @@ export async function GET(req: NextRequest) {
   if (!todayFilter) return NextResponse.json(habits);
 
   // Filter to habits scheduled for today
-  const filtered = habits.filter((h) => {
-    if (h.frequencyType === "daily") return true;
-    if (h.frequencyType === "weekly") {
-      return h.frequencyDays.length === 0 || h.frequencyDays.includes(todayDow);
-    }
-    // monthly: always show (no day config yet)
-    return true;
-  });
+  const filtered = habits.filter((h) => isHabitScheduledToday(h, todayDow));
 
   return NextResponse.json(filtered);
 }
