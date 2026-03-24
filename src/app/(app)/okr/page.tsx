@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Clock, TrendingUp } from "lucide-react";
+import { Plus, Clock, TrendingUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,6 +38,13 @@ interface KeyResult {
   checkIns: CheckIn[];
 }
 
+interface OKRTask {
+  id: string;
+  title: string;
+  status: string; // "todo" | "done"
+  dueDate?: string | null;
+}
+
 interface Objective {
   id: string;
   title: string;
@@ -46,6 +53,7 @@ interface Objective {
   status: string;
   tags: string[];
   keyResults: KeyResult[];
+  tasks: OKRTask[];
 }
 
 export default function OkrPage() {
@@ -55,6 +63,7 @@ export default function OkrPage() {
   const [checkInKr, setCheckInKr] = useState<KeyResult | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagKey, setTagKey] = useState(0);
+  const [newTaskInputs, setNewTaskInputs] = useState<Record<string, string>>({});
 
   const fetchObjectives = useCallback(async () => {
     const url = selectedTag ? `/api/okr?tag=${encodeURIComponent(selectedTag)}` : "/api/okr";
@@ -67,6 +76,54 @@ export default function OkrPage() {
   useEffect(() => {
     fetchObjectives();
   }, [fetchObjectives]);
+
+  async function toggleOKRTask(objectiveId: string, task: OKRTask) {
+    const newStatus = task.status === "done" ? "todo" : "done";
+    // Optimistic update
+    setObjectives((prev) =>
+      prev.map((o) =>
+        o.id !== objectiveId ? o : {
+          ...o,
+          tasks: o.tasks.map((t) => t.id === task.id ? { ...t, status: newStatus } : t),
+        }
+      )
+    );
+    const res = await fetch(`/api/okr/${objectiveId}/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!res.ok) {
+      // Rollback on failure
+      setObjectives((prev) =>
+        prev.map((o) =>
+          o.id !== objectiveId ? o : {
+            ...o,
+            tasks: o.tasks.map((t) => t.id === task.id ? { ...t, status: task.status } : t),
+          }
+        )
+      );
+    }
+  }
+
+  async function addOKRTask(objectiveId: string) {
+    const title = newTaskInputs[objectiveId]?.trim();
+    if (!title) return;
+    const res = await fetch(`/api/okr/${objectiveId}/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    if (res.ok) {
+      const task = await res.json();
+      setNewTaskInputs((prev) => ({ ...prev, [objectiveId]: "" }));
+      setObjectives((prev) =>
+        prev.map((o) =>
+          o.id !== objectiveId ? o : { ...o, tasks: [...(o.tasks ?? []), task] }
+        )
+      );
+    }
+  }
 
   function getStatusBadge(obj: Objective) {
     const days = daysUntil(obj.deadline);
@@ -183,6 +240,48 @@ export default function OkrPage() {
                       </div>
                     );
                   })}
+                  {/* Tasks */}
+                  <div className="mt-4 space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tasks</p>
+                      {(obj.tasks ?? []).map((task) => (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-3 px-2 py-1.5 rounded-md hover:bg-secondary/30 cursor-pointer group"
+                          onClick={() => toggleOKRTask(obj.id, task)}
+                        >
+                          <div className={cn(
+                            "h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                            task.status === "done"
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-border group-hover:border-primary"
+                          )}>
+                            {task.status === "done" && <Check className="h-2.5 w-2.5" />}
+                          </div>
+                          <span className={cn(
+                            "text-sm flex-1",
+                            task.status === "done" && "line-through text-muted-foreground"
+                          )}>
+                            {task.title}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="text"
+                          placeholder="Add task..."
+                          value={newTaskInputs[obj.id] ?? ""}
+                          onChange={(e) => setNewTaskInputs((prev) => ({ ...prev, [obj.id]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === "Enter") addOKRTask(obj.id); }}
+                          className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-muted-foreground/50 py-1"
+                        />
+                        <button
+                          onClick={() => addOKRTask(obj.id)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                  </div>
                 </CardContent>
               </Card>
             );
