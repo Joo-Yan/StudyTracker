@@ -16,37 +16,52 @@ import { format } from "date-fns";
 interface HabitLog { id: string; date: string; completed: boolean }
 interface Habit { id: string; title: string; icon: string; logs: HabitLog[] }
 interface KeyResult { currentValue: number; targetValue: number; weight: number }
-interface Objective { id: string; title: string; deadline: string; keyResults: KeyResult[] }
+interface OKRTask { id: string; title: string; status: string; dueDate?: string | null; objectiveId: string; }
+interface Objective { id: string; title: string; deadline: string; keyResults: KeyResult[]; tasks: OKRTask[]; }
 interface Todo { id: string; title: string; dueDate: string | null; priority: number; completed: boolean }
 
 export default function DashboardPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [todayTodos, setTodayTodos] = useState<Todo[]>([]);
+  const [upcomingTodos, setUpcomingTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function fetchData() {
     const today = todayString();
-    const [habitsRes, okrRes, todosRes] = await Promise.all([
+    const [habitsRes, okrRes, todosRes, upcomingRes] = await Promise.all([
       fetch(`/api/habits?today=true&date=${encodeURIComponent(today)}`),
       fetch("/api/okr"),
       fetch(`/api/todos?due=today&date=${encodeURIComponent(today)}`),
+      fetch(`/api/todos?due=upcoming&days=7&date=${encodeURIComponent(today)}`),
     ]);
     if (habitsRes.ok) setHabits(await habitsRes.json());
     if (okrRes.ok) setObjectives(await okrRes.json());
     if (todosRes.ok) setTodayTodos(await todosRes.json());
+    if (upcomingRes.ok) setUpcomingTodos(await upcomingRes.json());
     setLoading(false);
   }
 
   async function toggleTodo(todo: Todo) {
+    // Optimistic update: mark as completed immediately
+    setTodayTodos((prev) =>
+      prev.map((t) => t.id === todo.id ? { ...t, completed: true } : t)
+    );
+    // Remove from list after brief visual feedback
+    const timeoutId = setTimeout(() => {
+      setTodayTodos((prev) => prev.filter((t) => t.id !== todo.id));
+    }, 600);
+    // Fire API
     const res = await fetch(`/api/todos/${todo.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: !todo.completed }),
     });
-    if (res.ok) {
-      const updated = await res.json();
-      setTodayTodos((prev) => prev.filter((t) => t.id !== updated.id));
+    if (!res.ok) {
+      clearTimeout(timeoutId);
+      setTodayTodos((prev) =>
+        prev.map((t) => t.id === todo.id ? { ...t, completed: todo.completed } : t)
+      );
     }
   }
 
@@ -85,6 +100,11 @@ export default function DashboardPage() {
   const urgentOkrs = objectives
     .filter((o) => daysUntil(o.deadline) >= 0 && daysUntil(o.deadline) <= 30)
     .slice(0, 3);
+
+  const pendingOkrTasks = objectives
+    .flatMap((o) => (o.tasks ?? []).map((t) => ({ ...t, objectiveTitle: o.title })))
+    .filter((t) => t.status !== "done")
+    .slice(0, 5);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4 md:px-0">
@@ -206,8 +226,9 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={todo.id}
+                      onClick={() => toggleTodo(todo)}
                       className={cn(
-                        "group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200",
+                        "group flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer",
                         todo.completed ? "opacity-40" : "hover:bg-stone-50/50 dark:hover:bg-stone-800/30"
                       )}
                     >
@@ -218,7 +239,7 @@ export default function DashboardPage() {
                             ? "bg-stone-400 border-stone-400 text-white"
                             : "border-stone-200 dark:border-stone-700 group-hover:border-sky-300"
                         )}
-                        onClick={() => toggleTodo(todo)}
+                        onClick={(e) => { e.stopPropagation(); toggleTodo(todo); }}
                       >
                         {todo.completed && <Check className="h-3 w-3 stroke-[3]" />}
                       </button>
@@ -237,6 +258,37 @@ export default function DashboardPage() {
               </div>
             )}
           </section>
+
+          {/* Upcoming Todos */}
+          {upcomingTodos.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-200 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  Coming Up
+                </h2>
+                <Link href="/todos" className="text-xs font-bold text-stone-400 hover:text-stone-600 transition-colors uppercase tracking-widest">
+                  View All
+                </Link>
+              </div>
+              <div className="bg-white/40 dark:bg-stone-900/40 rounded-3xl border border-stone-100 dark:border-stone-800 p-2 shadow-soft">
+                {upcomingTodos.slice(0, 5).map((todo) => {
+                  const daysAway = todo.dueDate ? daysUntil(todo.dueDate) : null;
+                  return (
+                    <div key={todo.id} className="flex items-center gap-4 px-4 py-3 rounded-2xl">
+                      <div className="h-5 w-5 rounded-lg border-2 border-stone-200 dark:border-stone-700 shrink-0" />
+                      <span className="text-sm font-medium flex-1 text-stone-600 dark:text-stone-300">{todo.title}</span>
+                      {daysAway !== null && (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                          {daysAway === 1 ? "tomorrow" : `in ${daysAway}d`}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Side Column */}
@@ -269,6 +321,31 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </section>
+
+          {pendingOkrTasks.length > 0 && (
+            <section className="space-y-4">
+              <h2 className="text-lg font-semibold text-stone-700 dark:text-stone-200 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                OKR Tasks
+              </h2>
+              <Card className="border-stone-100/50 dark:border-stone-800 shadow-soft bg-white/40 dark:bg-stone-900/40 backdrop-blur-sm border-none">
+                <CardContent className="pt-4 space-y-1">
+                  {pendingOkrTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-3 px-2 py-1.5 rounded-xl">
+                      <div className="h-4 w-4 rounded border-2 border-stone-200 dark:border-stone-700 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-stone-600 dark:text-stone-300 truncate">{task.title}</p>
+                        <p className="text-xs text-stone-400 truncate">{task.objectiveTitle}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <Link href="/okr" className="block text-xs font-bold text-stone-400 hover:text-stone-600 uppercase tracking-widest pt-2 px-2">
+                    View OKRs →
+                  </Link>
+                </CardContent>
+              </Card>
+            </section>
+          )}
 
           {/* Elegant Motivation Card */}
           <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-900/10 dark:to-sky-900/10 border border-white dark:border-stone-800/50 shadow-soft relative overflow-hidden group">

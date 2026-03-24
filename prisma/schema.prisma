@@ -54,6 +54,7 @@ model Objective {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   keyResults  KeyResult[]
+  tasks       OKRTask[]
 
   @@index([userId])
 }
@@ -88,6 +89,18 @@ model CheckIn {
   @@index([keyResultId])
 }
 
+model OKRTask {
+  id          String    @id @default(cuid())
+  userId      String
+  objectiveId String
+  title       String
+  status      String    @default("todo")
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  objective   Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+}
+
 model Project {
   id          String       @id @default(cuid())
   userId      String
@@ -100,6 +113,7 @@ model Project {
   targetDate  DateTime?
   linkedOkrId String?
   linkedIdeaId String?
+  notes       String?      @default("")
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   milestones  Milestone[]

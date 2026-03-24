@@ -28,7 +28,8 @@ function uuid(): string {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function parseApiUrl(url: string): {
@@ -145,9 +146,10 @@ async function handleApiRequest(
         result = result.filter((h) => Array.isArray(h.tags) && h.tags.includes(tagParam));
       }
 
+      const filterDate = params.get("date") ?? todayDate;
       result = result.map((h) => ({
         ...h,
-        logs: h.logs.filter((l: any) => l.date === todayDate),
+        logs: h.logs.filter((l: any) => l.date === filterDate),
       }));
 
       return jsonResponse(result);
@@ -215,6 +217,21 @@ async function handleApiRequest(
         result = result.filter(
           (t) => !t.completed && t.dueDate && t.dueDate.startsWith(dateParam)
         );
+      }
+
+      if (dueParam === "upcoming" && dateParam) {
+        const daysParam = parseInt(params.get("days") ?? "7", 10);
+        // Parse as local date to avoid UTC midnight shift in UTC-behind timezones
+        const [y, m, d] = dateParam.split("-").map(Number);
+        const start = new Date(y, m - 1, d + 1); // tomorrow, local midnight
+        const end = new Date(y, m - 1, d + daysParam); // today+N, local midnight
+        result = result.filter((t) => {
+          if (t.completed || !t.dueDate) return false;
+          const dueStr = t.dueDate.slice(0, 10);
+          const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+          const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+          return dueStr >= startStr && dueStr <= endStr;
+        });
       }
 
       result = [...result].sort((a, b) => {
@@ -296,12 +313,56 @@ async function handleApiRequest(
       });
       result = result.map((o) => ({
         ...o,
+        tasks: (o.tasks ?? []),
         keyResults: (o.keyResults ?? []).map((kr: any) => ({
           ...kr,
           checkIns: (kr.checkIns ?? []).slice(-5),
         })),
       }));
       return jsonResponse(result);
+    }
+
+    // POST /api/okr/[id]/tasks
+    if (id && subEntity === "tasks" && !subId && method === "POST") {
+      const objective = store.objectives.find((o) => o.id === id);
+      if (!objective) return jsonResponse({ error: "Not found" }, 404);
+      const task = {
+        id: uuid(),
+        userId: "demo",
+        objectiveId: id,
+        title: body.title,
+        status: "todo",
+        dueDate: body.dueDate ?? null,
+        completedAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      if (!Array.isArray(objective.tasks)) objective.tasks = [];
+      objective.tasks.push(task);
+      return jsonResponse(task, 201);
+    }
+
+    // PATCH /api/okr/[id]/tasks/[taskId]
+    if (id && subEntity === "tasks" && subId && method === "PATCH") {
+      const objective = store.objectives.find((o) => o.id === id);
+      if (!objective) return jsonResponse({ error: "Not found" }, 404);
+      const task = (objective.tasks ?? []).find((t: any) => t.id === subId);
+      if (!task) return jsonResponse({ error: "Not found" }, 404);
+      Object.assign(task, body);
+      if (body.status === "done" && !task.completedAt) {
+        task.completedAt = new Date().toISOString();
+      } else if (body.status === "todo") {
+        task.completedAt = null;
+      }
+      return jsonResponse(task);
+    }
+
+    // DELETE /api/okr/[id]/tasks/[taskId]
+    if (id && subEntity === "tasks" && subId && method === "DELETE") {
+      const objective = store.objectives.find((o) => o.id === id);
+      if (!objective) return jsonResponse({ error: "Not found" }, 404);
+      const idx = (objective.tasks ?? []).findIndex((t: any) => t.id === subId);
+      if (idx !== -1) objective.tasks.splice(idx, 1);
+      return jsonResponse({ success: true });
     }
   }
 
@@ -378,6 +439,14 @@ async function handleApiRequest(
     if (id && !subEntity && method === "GET") {
       const project = store.projects.find((p) => p.id === id);
       if (!project) return jsonResponse({ error: "Not found" }, 404);
+      return jsonResponse(project);
+    }
+
+    // PATCH /api/projects/[id]
+    if (id && !subEntity && method === "PATCH") {
+      const project = store.projects.find((p) => p.id === id);
+      if (!project) return jsonResponse({ error: "Not found" }, 404);
+      if (body.notes !== undefined) project.notes = body.notes;
       return jsonResponse(project);
     }
 

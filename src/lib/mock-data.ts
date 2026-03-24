@@ -8,19 +8,20 @@
 
 function today(): string {
   const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function daysFromNow(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString();
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${dateStr}T00:00:00.000Z`;
 }
 
 let _seq = 0;
@@ -34,9 +35,8 @@ function isoToday(): string {
 }
 
 function isoAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString();
+  const dateStr = daysAgo(n);
+  return `${dateStr}T08:00:00.000Z`;
 }
 
 // Seeded pseudo-random (not crypto) so re-renders are deterministic per day.
@@ -198,7 +198,7 @@ function buildHabits(): any[] {
 
 function buildTodos(): any[] {
   const t = today();
-  const todayIso = new Date().toISOString();
+  const todayIso = `${today()}T00:00:00.000Z`;
 
   return [
     // 2 completed
@@ -409,6 +409,11 @@ function buildObjectives(): any[] {
           ]),
         },
       ],
+      tasks: [
+        { id: uuid(), userId: "demo", objectiveId: obj1Id, title: "Watch React Server Components deep-dive video", status: "done", dueDate: null, completedAt: isoAgo(5), createdAt: isoAgo(20) },
+        { id: uuid(), userId: "demo", objectiveId: obj1Id, title: "Build portfolio project #3 landing page", status: "todo", dueDate: daysFromNow(10), completedAt: null, createdAt: isoAgo(3) },
+        { id: uuid(), userId: "demo", objectiveId: obj1Id, title: "Take Meta React certification practice exam", status: "todo", dueDate: daysFromNow(14), completedAt: null, createdAt: isoAgo(2) },
+      ],
     },
     {
       id: obj2Id,
@@ -453,6 +458,10 @@ function buildObjectives(): any[] {
           ]),
         },
       ],
+      tasks: [
+        { id: uuid(), userId: "demo", objectiveId: obj2Id, title: "Sign up for gym membership", status: "done", dueDate: null, completedAt: isoAgo(25), createdAt: isoAgo(30) },
+        { id: uuid(), userId: "demo", objectiveId: obj2Id, title: "Create weekly workout schedule", status: "todo", dueDate: daysFromNow(3), completedAt: null, createdAt: isoAgo(1) },
+      ],
     },
     {
       id: obj3Id,
@@ -496,6 +505,11 @@ function buildObjectives(): any[] {
             { value: 32, note: "Reddit post got traction!", daysBack: 3 },
           ]),
         },
+      ],
+      tasks: [
+        { id: uuid(), userId: "demo", objectiveId: obj3Id, title: "Write product launch blog post", status: "done", dueDate: null, completedAt: isoAgo(3), createdAt: isoAgo(7) },
+        { id: uuid(), userId: "demo", objectiveId: obj3Id, title: "Set up beta user feedback form", status: "todo", dueDate: daysFromNow(5), completedAt: null, createdAt: isoAgo(2) },
+        { id: uuid(), userId: "demo", objectiveId: obj3Id, title: "Create onboarding email sequence", status: "todo", dueDate: daysFromNow(7), completedAt: null, createdAt: isoAgo(1) },
       ],
     },
   ];
@@ -546,6 +560,7 @@ function buildProjects(): any[] {
       tags: ["coding", "fullstack"],
       targetDate: daysFromNow(45),
       createdAt: isoAgo(60),
+      notes: `# LearningTracker App\n\n## Architecture\n- Next.js App Router with Supabase auth\n- Prisma ORM + PostgreSQL\n- Tailwind CSS + shadcn/ui\n\n## Key Decisions\n- Use server components for data fetching where possible\n- Keep demo mode client-side only\n\n## Next Steps\n- [ ] Add dark mode toggle\n- [ ] Deploy to Vercel\n- [ ] Set up CI/CD pipeline`,
       milestones: [
         {
           id: m1aId,
@@ -600,6 +615,7 @@ function buildProjects(): any[] {
       tags: ["coding", "writing"],
       targetDate: daysFromNow(75),
       createdAt: isoAgo(20),
+      notes: `# Blog Platform\n\n## Concept\nA minimal, fast blog with MDX support and great SEO.\n\n## Tech Stack Ideas\n- Next.js + MDX\n- Vercel deployment\n- Vercel Analytics\n\n## Content Plan\n- TypeScript generics deep dive\n- React Server Components explained`,
       milestones: [
         {
           id: m2aId,
@@ -642,6 +658,7 @@ function buildProjects(): any[] {
       tags: ["learning", "language"],
       targetDate: daysFromNow(120),
       createdAt: isoAgo(45),
+      notes: `# Japanese Study Plan\n\n## JLPT N3 Target\nAiming for N3 by end of year.\n\n## Daily Routine\n- Anki: 20 new cards + all reviews\n- Grammar: 1 point per day (Bunpro)\n- Reading: NHK Web Easy 1 article\n\n## Resources\n- Anki with Core 6k deck\n- Bunpro for grammar\n- Satori Reader for reading`,
       milestones: [
         {
           id: m3aId,
