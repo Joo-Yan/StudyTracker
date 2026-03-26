@@ -99,6 +99,8 @@ model OKRTask {
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   objective   Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Project {
