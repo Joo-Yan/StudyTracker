@@ -7,8 +7,13 @@ import { useAuth } from "@/lib/auth-context";
 import { useDemo } from "@/lib/demo-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Menu } from "lucide-react";
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { user, loading } = useAuth();
   const { isDemo, exitDemo } = useDemo();
   const router = useRouter();
@@ -23,8 +28,15 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 flex items-center justify-end px-8 shrink-0">
-      <div className="flex items-center gap-3 min-w-[140px] justify-end">
+    <header className="h-16 flex items-center justify-between px-4 md:px-8 shrink-0">
+      <button
+        className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+        onClick={onMenuClick}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <div className="flex items-center gap-3 min-w-[140px] justify-end ml-auto">
         {isDemo ? (
           <>
             <Badge variant="secondary" className="text-xs">Demo Mode</Badge>

@@ -87,6 +87,33 @@ export default function DashboardPage() {
     fetchData();
   }
 
+  async function toggleOKRTask(objectiveId: string, task: { id: string; status: string }) {
+    const newStatus = task.status === "done" ? "todo" : "done";
+    setObjectives((prev) =>
+      prev.map((o) =>
+        o.id !== objectiveId ? o : {
+          ...o,
+          tasks: o.tasks.map((t) => t.id === task.id ? { ...t, status: newStatus } : t),
+        }
+      )
+    );
+    const res = await fetch(`/api/okr/${objectiveId}/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!res.ok) {
+      setObjectives((prev) =>
+        prev.map((o) =>
+          o.id !== objectiveId ? o : {
+            ...o,
+            tasks: o.tasks.map((t) => t.id === task.id ? { ...t, status: task.status } : t),
+          }
+        )
+      );
+    }
+  }
+
   useEffect(() => { fetchData(); }, []);
 
   const today = todayString();
@@ -102,7 +129,7 @@ export default function DashboardPage() {
     .slice(0, 3);
 
   const pendingOkrTasks = objectives
-    .flatMap((o) => (o.tasks ?? []).map((t) => ({ ...t, objectiveTitle: o.title })))
+    .flatMap((o) => (o.tasks ?? []).map((t) => ({ ...t, objectiveId: o.id, objectiveTitle: o.title })))
     .filter((t) => t.status !== "done")
     .slice(0, 5);
 
@@ -145,7 +172,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
         {/* Main Column */}
         <div className="lg:col-span-2 space-y-10">
           {/* Today's habits */}
@@ -331,8 +358,12 @@ export default function DashboardPage() {
               <Card className="border-stone-100/50 dark:border-stone-800 shadow-soft bg-white/40 dark:bg-stone-900/40 backdrop-blur-sm border-none">
                 <CardContent className="pt-4 space-y-1">
                   {pendingOkrTasks.map((task) => (
-                    <div key={task.id} className="flex items-center gap-3 px-2 py-1.5 rounded-xl">
-                      <div className="h-4 w-4 rounded border-2 border-stone-200 dark:border-stone-700 shrink-0" />
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-2 py-1.5 rounded-xl cursor-pointer hover:bg-secondary/30 group"
+                      onClick={() => toggleOKRTask(task.objectiveId, task)}
+                    >
+                      <div className="h-4 w-4 rounded border-2 border-stone-200 dark:border-stone-700 shrink-0 flex items-center justify-center transition-colors group-hover:border-primary" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-stone-600 dark:text-stone-300 truncate">{task.title}</p>
                         <p className="text-xs text-stone-400 truncate">{task.objectiveTitle}</p>
