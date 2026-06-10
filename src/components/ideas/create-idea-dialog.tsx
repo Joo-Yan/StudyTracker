@@ -12,6 +12,7 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
+import { postJson } from "@/lib/api-client";
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
   const [priority, setPriority] = useState(2);
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function reset() {
     setTitle("");
@@ -41,14 +43,22 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    await fetch("/api/ideas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, type, priority, tags }),
+    const { error: submitError } = await postJson("/api/ideas", {
+      title,
+      description,
+      type,
+      priority,
+      tags,
     });
 
     setLoading(false);
+    if (submitError) {
+      setError(submitError);
+      return;
+    }
+
     reset();
     onOpenChange(false);
     onCreated();
@@ -126,6 +136,11 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
         </ModalShellBody>
         <ModalShellFooter>
+          {error && (
+            <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <div className="flex gap-3">
             <Button
               type="button"

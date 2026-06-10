@@ -2,6 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
+  // API routes authenticate themselves (and can refresh tokens in their own
+  // handlers), so skip the Supabase auth round trip here — it would otherwise
+  // run twice per API call.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -28,11 +35,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  // Let API routes handle their own 401 responses
-  if (request.nextUrl.pathname.startsWith("/api/")) {
-    return supabaseResponse;
-  }
 
   const isAuthPath =
     request.nextUrl.pathname.startsWith("/login") ||

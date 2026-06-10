@@ -13,6 +13,7 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
+import { postJson } from "@/lib/api-client";
 
 interface KrDraft {
   title: string;
@@ -38,6 +39,7 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
     { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 },
   ]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function addKr() {
     setKeyResults([
@@ -59,20 +61,22 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    await fetch("/api/okr", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description,
-        deadline,
-        tags,
-        keyResults: keyResults.filter((kr) => kr.title.trim()),
-      }),
+    const { error: submitError } = await postJson("/api/okr", {
+      title,
+      description,
+      deadline,
+      tags,
+      keyResults: keyResults.filter((kr) => kr.title.trim()),
     });
 
     setLoading(false);
+    if (submitError) {
+      setError(submitError);
+      return;
+    }
+
     setTitle("");
     setDescription("");
     setDeadline("");
@@ -195,6 +199,11 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
         </ModalShellBody>
         <ModalShellFooter>
+          {error && (
+            <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <div className="flex gap-3">
             <Button
               type="button"
