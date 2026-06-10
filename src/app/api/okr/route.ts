@@ -42,37 +42,50 @@ export async function POST(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  if (!title) {
+    return NextResponse.json({ error: "Title is required" }, { status: 400 });
+  }
+  const deadline = new Date(body.deadline);
+  if (isNaN(deadline.getTime())) {
+    return NextResponse.json({ error: "A valid deadline is required" }, { status: 400 });
+  }
 
-  const objective = await prisma.objective.create({
-    data: {
-      userId: user.id,
-      title: body.title,
-      description: body.description,
-      deadline: new Date(body.deadline),
-      tags: body.tags ?? [],
-      keyResults: {
-        create: (body.keyResults ?? []).map(
-          (kr: {
-            title: string;
-            type?: string;
-            targetValue?: number;
-            unit?: string;
-            weight?: number;
-            dueDate?: string;
-          }) => ({
-            title: kr.title,
-            type: kr.type ?? "percentage",
-            targetValue: kr.targetValue ?? 100,
-            unit: kr.unit,
-            weight: kr.weight ?? 3,
-            dueDate: kr.dueDate ? new Date(kr.dueDate) : undefined,
-          })
-        ),
+  try {
+    const objective = await prisma.objective.create({
+      data: {
+        userId: user.id,
+        title,
+        description: body.description,
+        deadline,
+        tags: body.tags ?? [],
+        keyResults: {
+          create: (body.keyResults ?? []).map(
+            (kr: {
+              title: string;
+              type?: string;
+              targetValue?: number;
+              unit?: string;
+              weight?: number;
+              dueDate?: string;
+            }) => ({
+              title: kr.title,
+              type: kr.type ?? "percentage",
+              targetValue: kr.targetValue ?? 100,
+              unit: kr.unit,
+              weight: kr.weight ?? 3,
+              dueDate: kr.dueDate ? new Date(kr.dueDate) : undefined,
+            })
+          ),
+        },
       },
-    },
-    include: { keyResults: true },
-  });
+      include: { keyResults: true },
+    });
 
-  return NextResponse.json(objective, { status: 201 });
+    return NextResponse.json(objective, { status: 201 });
+  } catch (error) {
+    console.error("Objective create failed:", error);
+    return NextResponse.json({ error: "Failed to create objective" }, { status: 500 });
+  }
 }

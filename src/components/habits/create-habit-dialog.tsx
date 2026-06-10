@@ -12,6 +12,7 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
+import { postJson } from "@/lib/api-client";
 
 interface Props {
   open: boolean;
@@ -41,6 +42,7 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
   const [frequencyDays, setFrequencyDays] = useState<number[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   function toggleDay(day: number) {
     setFrequencyDays((prev) =>
@@ -51,22 +53,24 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
-    await fetch("/api/habits", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description,
-        icon,
-        color,
-        frequencyType,
-        frequencyDays: frequencyType === "weekly" ? frequencyDays : [],
-        tags,
-      }),
+    const { error: submitError } = await postJson("/api/habits", {
+      title,
+      description,
+      icon,
+      color,
+      frequencyType,
+      frequencyDays: frequencyType === "weekly" ? frequencyDays : [],
+      tags,
     });
 
     setLoading(false);
+    if (submitError) {
+      setError(submitError);
+      return;
+    }
+
     setTitle("");
     setDescription("");
     setIcon("✓");
@@ -184,6 +188,11 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
           </div>
         </ModalShellBody>
         <ModalShellFooter>
+          {error && (
+            <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
           <div className="flex gap-3">
             <Button
               type="button"

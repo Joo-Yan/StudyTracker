@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
     dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
       ? dateParam
       : new Date().toISOString().slice(0, 10);
-  const todayDow = new Date().getDay(); // 0=Sun … 6=Sat
+  // Derive the weekday from the same calendar date used to match logs,
+  // not from the server's local clock.
+  const todayDow = new Date(`${todayStr}T00:00:00Z`).getUTCDay(); // 0=Sun … 6=Sat
 
   const habits = await prisma.habit.findMany({
     where: { userId: user.id, isActive: true, ...(tag ? { tags: { has: tag } } : {}) },
@@ -46,22 +48,31 @@ export async function POST(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  const title = typeof body?.title === "string" ? body.title.trim() : "";
+  if (!title) {
+    return NextResponse.json({ error: "Title is required" }, { status: 400 });
+  }
 
-  const habit = await prisma.habit.create({
-    data: {
-      userId: user.id,
-      title: body.title,
-      description: body.description,
-      icon: body.icon ?? "✓",
-      color: body.color ?? "#6366f1",
-      frequencyType: body.frequencyType ?? "daily",
-      frequencyDays: body.frequencyDays ?? [],
-      timesPerPeriod: body.timesPerPeriod,
-      reminderTime: body.reminderTime,
-      tags: body.tags ?? [],
-    },
-  });
+  try {
+    const habit = await prisma.habit.create({
+      data: {
+        userId: user.id,
+        title,
+        description: body.description,
+        icon: body.icon ?? "✓",
+        color: body.color ?? "#6366f1",
+        frequencyType: body.frequencyType ?? "daily",
+        frequencyDays: body.frequencyDays ?? [],
+        timesPerPeriod: body.timesPerPeriod,
+        reminderTime: body.reminderTime,
+        tags: body.tags ?? [],
+      },
+    });
 
-  return NextResponse.json(habit, { status: 201 });
+    return NextResponse.json(habit, { status: 201 });
+  } catch (error) {
+    console.error("Habit create failed:", error);
+    return NextResponse.json({ error: "Failed to create habit" }, { status: 500 });
+  }
 }

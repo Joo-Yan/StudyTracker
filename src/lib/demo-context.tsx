@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { createMockData, createMockStats, type DemoStore } from "@/lib/mock-data";
 import { isHabitScheduledToday } from "@/lib/habit-schedule";
+import { useAuth } from "@/lib/auth-context";
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -642,6 +643,7 @@ async function handleApiRequest(
 // ---------------------------------------------------------------------------
 
 export function DemoProvider({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
   const [isDemo, setIsDemo] = useState(false);
   const storeRef = useRef<DemoStore | null>(null);
   const originalFetchRef = useRef<typeof window.fetch | null>(null);
@@ -713,20 +715,28 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     restoreOriginalFetch();
   }, [restoreOriginalFetch]);
 
-  // Auto-enter demo mode if flag was set in a previous session
+  // A real session always wins over demo mode: leave demo (restoring the
+  // original window.fetch) and clear the persisted flag once a user appears.
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const flag = localStorage.getItem("studytracker-demo");
-      if (flag === "true") {
-        enterDemo();
-      }
+    if (!user) return;
+    if (isDemo) {
+      exitDemo();
+    } else if (typeof window !== "undefined") {
+      localStorage.removeItem("studytracker-demo");
     }
-    // Cleanup on unmount
-    return () => {
-      restoreOriginalFetch();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user, isDemo, exitDemo]);
+
+  // Auto-enter demo mode from a previous session only when auth has resolved
+  // and there is no signed-in user.
+  useEffect(() => {
+    if (authLoading || user) return;
+    if (localStorage.getItem("studytracker-demo") === "true") {
+      enterDemo();
+    }
+  }, [authLoading, user, enterDemo]);
+
+  // Cleanup on unmount
+  useEffect(() => restoreOriginalFetch, [restoreOriginalFetch]);
 
   return (
     <DemoContext.Provider value={{ isDemo, enterDemo, exitDemo }}>
