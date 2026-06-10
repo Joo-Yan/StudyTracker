@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Flame, Check } from "lucide-react";
+import { Plus, Flame, Check, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, todayString } from "@/lib/utils";
-import { CreateHabitDialog } from "@/components/habits/create-habit-dialog";
+import { CreateHabitDialog, type HabitFormData } from "@/components/habits/create-habit-dialog";
+import { requestJson } from "@/lib/api-client";
 import { HabitHeatmap } from "@/components/habits/habit-heatmap";
 import { TagFilter } from "@/components/shared/tag-filter";
 
@@ -30,6 +31,7 @@ interface Habit {
   icon: string;
   color: string;
   frequencyType: string;
+  frequencyDays?: number[];
   tags: string[];
   logs: HabitLog[];
 }
@@ -38,6 +40,7 @@ export default function HabitsPage() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<HabitFormData | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagKey, setTagKey] = useState(0);
@@ -84,6 +87,20 @@ export default function HabitsPage() {
     });
 
     fetchHabits();
+  }
+
+  async function handleDelete(habit: Habit) {
+    if (!window.confirm(`Delete "${habit.title}" and all of its history? This cannot be undone.`)) {
+      return;
+    }
+    const { error } = await requestJson("DELETE", `/api/habits/${habit.id}`);
+    if (error) {
+      window.alert(error);
+      return;
+    }
+    if (selected === habit.id) setSelected(null);
+    fetchHabits();
+    setTagKey((k) => k + 1);
   }
 
   const today = todayString();
@@ -184,6 +201,31 @@ export default function HabitsPage() {
                   <Flame className="h-3 w-3" />
                   <span>{habit.frequencyType}</span>
                 </div>
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditing(habit);
+                      setOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(habit);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             );
           })}
@@ -205,8 +247,12 @@ export default function HabitsPage() {
 
       <CreateHabitDialog
         open={open}
-        onOpenChange={setOpen}
-        onCreated={() => { fetchHabits(); setTagKey((k) => k + 1); }}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setEditing(null);
+        }}
+        habit={editing}
+        onSaved={() => { fetchHabits(); setTagKey((k) => k + 1); }}
       />
     </div>
   );

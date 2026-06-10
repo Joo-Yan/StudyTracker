@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,10 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
-import { postJson } from "@/lib/api-client";
+import { requestJson } from "@/lib/api-client";
 
 interface KrDraft {
+  id?: string;
   title: string;
   type: string;
   targetValue: number;
@@ -23,29 +24,66 @@ interface KrDraft {
   weight: number;
 }
 
+export interface ObjectiveFormData {
+  id: string;
+  title: string;
+  description?: string | null;
+  deadline: string;
+  tags: string[];
+  keyResults: {
+    id: string;
+    title: string;
+    type: string;
+    targetValue: number;
+    unit?: string | null;
+    weight: number;
+  }[];
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  /** When set, the dialog edits this objective instead of creating a new one. */
+  objective?: ObjectiveFormData | null;
 }
 
-export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
+const EMPTY_KR: KrDraft = { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 };
+
+export function CreateOkrDialog({ open, onOpenChange, onSaved, objective }: Props) {
   const formId = "create-okr-form";
+  const isEdit = !!objective;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [deadline, setDeadline] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [keyResults, setKeyResults] = useState<KrDraft[]>([
-    { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 },
-  ]);
+  const [keyResults, setKeyResults] = useState<KrDraft[]>([{ ...EMPTY_KR }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!open) return;
+    setTitle(objective?.title ?? "");
+    setDescription(objective?.description ?? "");
+    setDeadline(objective ? objective.deadline.slice(0, 10) : "");
+    setTags(objective?.tags ?? []);
+    setKeyResults(
+      objective && objective.keyResults.length > 0
+        ? objective.keyResults.map((kr) => ({
+            id: kr.id,
+            title: kr.title,
+            type: kr.type,
+            targetValue: kr.targetValue,
+            unit: kr.unit ?? "",
+            weight: kr.weight,
+          }))
+        : [{ ...EMPTY_KR }]
+    );
+    setError("");
+  }, [open, objective]);
+
   function addKr() {
-    setKeyResults([
-      ...keyResults,
-      { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 },
-    ]);
+    setKeyResults([...keyResults, { ...EMPTY_KR }]);
   }
 
   function removeKr(i: number) {
@@ -63,13 +101,16 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
     setLoading(true);
     setError("");
 
-    const { error: submitError } = await postJson("/api/okr", {
+    const payload = {
       title,
       description,
       deadline,
       tags,
       keyResults: keyResults.filter((kr) => kr.title.trim()),
-    });
+    };
+    const { error: submitError } = isEdit
+      ? await requestJson("PATCH", `/api/okr/${objective!.id}`, payload)
+      : await requestJson("POST", "/api/okr", payload);
 
     setLoading(false);
     if (submitError) {
@@ -77,15 +118,8 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
       return;
     }
 
-    setTitle("");
-    setDescription("");
-    setDeadline("");
-    setTags([]);
-    setKeyResults([
-      { title: "", type: "percentage", targetValue: 100, unit: "", weight: 3 },
-    ]);
     onOpenChange(false);
-    onCreated();
+    onSaved();
   }
 
   if (!open) return null;
@@ -93,7 +127,7 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
   return (
     <ModalShell maxWidth="lg">
       <ModalShellHeader>
-        <h2 className="font-semibold">New objective</h2>
+        <h2 className="font-semibold">{isEdit ? "Edit objective" : "New objective"}</h2>
       </ModalShellHeader>
       <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalShellBody className="space-y-4">
@@ -133,8 +167,13 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
                 Add KR
               </Button>
             </div>
+            {isEdit && (
+              <p className="text-xs text-muted-foreground">
+                Removing a key result also deletes its check-in history.
+              </p>
+            )}
             {keyResults.map((kr, i) => (
-              <div key={i} className="space-y-2 rounded-lg border p-3">
+              <div key={kr.id ?? `new-${i}`} className="space-y-2 rounded-lg border p-3">
                 <div className="flex items-center gap-2">
                   <Input
                     placeholder={`KR ${i + 1}: e.g. Ship 3 features`}
@@ -214,7 +253,9 @@ export function CreateOkrDialog({ open, onOpenChange, onCreated }: Props) {
               Cancel
             </Button>
             <Button type="submit" form={formId} className="flex-1" disabled={loading}>
-              {loading ? "Creating..." : "Create objective"}
+              {loading
+                ? isEdit ? "Saving..." : "Creating..."
+                : isEdit ? "Save changes" : "Create objective"}
             </Button>
           </div>
         </ModalShellFooter>

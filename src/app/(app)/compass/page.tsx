@@ -5,15 +5,15 @@ import { Compass } from "lucide-react";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-const PLACEHOLDER = `在这里记录你的人生方向...
+const PLACEHOLDER = `Capture your life direction here...
 
-一些可以写的内容：
-• 你对未来的构想和愿景
-• 让你充满热情的事（Passion）
-• 人生目标和核心追求
-• 自我优化和完善的方向
-• 当前阶段最值得投入的事
-• 对你来说真正重要的事情`;
+Some things you could write about:
+• Your vision and aspirations for the future
+• What you're truly passionate about
+• Life goals and core pursuits
+• Areas for self-improvement and growth
+• What's most worth investing in right now
+• The things that genuinely matter to you`;
 
 export default function CompassPage() {
   const [content, setContent] = useState("");

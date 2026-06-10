@@ -3,14 +3,16 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import { Plus, Check, ChevronDown, ChevronRight, Send, BookOpen, ListTodo } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Plus, Check, ChevronDown, ChevronRight, Send, BookOpen, ListTodo, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn, calcProgress, formatDate } from "@/lib/utils";
+import { CreateProjectDialog, type ProjectFormData } from "@/components/projects/create-project-dialog";
+import { requestJson } from "@/lib/api-client";
 
 interface Task {
   id: string;
@@ -35,6 +37,7 @@ interface Project {
   status: string;
   color: string;
   targetDate?: string;
+  tags?: string[];
   notes?: string;
   milestones: Milestone[];
   logs: ProjectLog[];
@@ -42,7 +45,9 @@ interface Project {
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [newMilestone, setNewMilestone] = useState("");
   const [newTasks, setNewTasks] = useState<Record<string, string>>({});
@@ -133,6 +138,23 @@ export default function ProjectDetailPage() {
     fetchProject();
   }
 
+  async function handleDelete() {
+    if (!project) return;
+    if (
+      !window.confirm(
+        `Delete "${project.title}" with all of its milestones, tasks, and logs? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    const { error } = await requestJson("DELETE", `/api/projects/${project.id}`);
+    if (error) {
+      window.alert(error);
+      return;
+    }
+    router.push("/projects");
+  }
+
   if (!project) return <div className="animate-pulse h-8 w-48 bg-muted rounded" />;
 
   const allTasks = project.milestones.flatMap((m) => m.tasks);
@@ -144,7 +166,23 @@ export default function ProjectDetailPage() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }} />
-          <h1 className="text-2xl font-bold">{project.title}</h1>
+          <h1 className="text-2xl font-bold flex-1">{project.title}</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={() => setEditOpen(true)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
         {project.description && (
           <p className="text-sm text-muted-foreground">{project.description}</p>
