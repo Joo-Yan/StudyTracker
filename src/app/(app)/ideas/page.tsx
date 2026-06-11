@@ -3,13 +3,13 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, ArrowRight, Trash2 } from "lucide-react";
+import { Plus, ArrowRight, Trash2, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CreateIdeaDialog } from "@/components/ideas/create-idea-dialog";
+import { CreateIdeaDialog, type IdeaFormData } from "@/components/ideas/create-idea-dialog";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { TagFilter } from "@/components/shared/tag-filter";
 
@@ -40,6 +40,7 @@ export default function IdeasPage() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<IdeaFormData | null>(null);
   const [convertIdea, setConvertIdea] = useState<Idea | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagKey, setTagKey] = useState(0);
@@ -108,12 +109,22 @@ export default function IdeasPage() {
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-sm leading-snug flex-1">{idea.title}</p>
-                    <button
-                      onClick={() => deleteIdea(idea.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setEditing(idea); setOpen(true); }}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Edit idea"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => deleteIdea(idea.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Delete idea"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   {idea.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2">{idea.description}</p>
@@ -172,13 +183,21 @@ export default function IdeasPage() {
         </div>
       )}
 
-      <CreateIdeaDialog open={open} onOpenChange={setOpen} onCreated={() => { fetchIdeas(); setTagKey((k) => k + 1); }} />
+      <CreateIdeaDialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setEditing(null);
+        }}
+        idea={editing}
+        onSaved={() => { fetchIdeas(); setTagKey((k) => k + 1); }}
+      />
 
       {convertIdea && (
         <CreateProjectDialog
           open={true}
           onOpenChange={(o) => { if (!o) setConvertIdea(null); }}
-          onCreated={handleProjectCreated}
+          onSaved={handleProjectCreated}
           linkedIdeaId={convertIdea.id}
           defaultTitle={convertIdea.title}
         />

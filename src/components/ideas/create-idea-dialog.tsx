@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,18 +12,30 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
-import { postJson } from "@/lib/api-client";
+import { requestJson } from "@/lib/api-client";
+
+export interface IdeaFormData {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: string;
+  priority: number;
+  tags: string[];
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  /** When set, the dialog edits this idea instead of creating a new one. */
+  idea?: IdeaFormData | null;
 }
 
 const TYPES = ["project", "feature", "experiment", "thought", "other"];
 
-export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreateIdeaDialog({ open, onOpenChange, onSaved, idea }: Props) {
   const formId = "create-idea-form";
+  const isEdit = !!idea;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState("project");
@@ -40,18 +52,25 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
     setTags([]);
   }
 
+  useEffect(() => {
+    if (!open) return;
+    setTitle(idea?.title ?? "");
+    setDescription(idea?.description ?? "");
+    setType(idea?.type ?? "project");
+    setPriority(idea?.priority ?? 2);
+    setTags(idea?.tags ?? []);
+    setError("");
+  }, [open, idea]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { error: submitError } = await postJson("/api/ideas", {
-      title,
-      description,
-      type,
-      priority,
-      tags,
-    });
+    const payload = { title, description, type, priority, tags };
+    const { error: submitError } = isEdit
+      ? await requestJson("PATCH", `/api/ideas/${idea!.id}`, payload)
+      : await requestJson("POST", "/api/ideas", payload);
 
     setLoading(false);
     if (submitError) {
@@ -61,7 +80,7 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
 
     reset();
     onOpenChange(false);
-    onCreated();
+    onSaved();
   }
 
   if (!open) return null;
@@ -69,7 +88,7 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
   return (
     <ModalShell maxWidth="md">
       <ModalShellHeader>
-        <h2 className="font-semibold">Capture idea</h2>
+        <h2 className="font-semibold">{isEdit ? "Edit idea" : "Capture idea"}</h2>
       </ModalShellHeader>
       <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalShellBody className="space-y-4">
@@ -154,7 +173,7 @@ export function CreateIdeaDialog({ open, onOpenChange, onCreated }: Props) {
               Cancel
             </Button>
             <Button type="submit" form={formId} className="flex-1" disabled={loading}>
-              {loading ? "Saving..." : "Save idea"}
+              {loading ? "Saving..." : isEdit ? "Save changes" : "Save idea"}
             </Button>
           </div>
         </ModalShellFooter>

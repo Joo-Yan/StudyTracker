@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,14 +12,25 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
-import { postJson } from "@/lib/api-client";
+import { requestJson } from "@/lib/api-client";
+
+export interface ProjectFormData {
+  id: string;
+  title: string;
+  description?: string | null;
+  color?: string | null;
+  targetDate?: string | null;
+  tags: string[];
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: () => void;
   linkedIdeaId?: string;
   defaultTitle?: string;
+  /** When set, the dialog edits this project instead of creating a new one. */
+  project?: ProjectFormData | null;
 }
 
 const COLORS = [
@@ -27,8 +38,9 @@ const COLORS = [
   "#f97316", "#eab308", "#22c55e", "#06b6d4",
 ];
 
-export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaId, defaultTitle }: Props) {
+export function CreateProjectDialog({ open, onOpenChange, onSaved, linkedIdeaId, defaultTitle, project }: Props) {
   const formId = "create-project-form";
+  const isEdit = !!project;
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#6366f1");
@@ -45,38 +57,46 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
     setTags([]);
   }
 
+  useEffect(() => {
+    if (!open) return;
+    setTitle(project?.title ?? defaultTitle ?? "");
+    setDescription(project?.description ?? "");
+    setColor(project?.color ?? "#6366f1");
+    setTargetDate(project?.targetDate ? project.targetDate.slice(0, 10) : "");
+    setTags(project?.tags ?? []);
+    setError("");
+  }, [open, project, defaultTitle]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { data: project, error: submitError } = await postJson<{ id: string }>(
-      "/api/projects",
-      { title, description, color, targetDate: targetDate || undefined, linkedIdeaId, tags }
-    );
+    const payload = {
+      title,
+      description,
+      color,
+      targetDate: targetDate || null,
+      tags,
+    };
+    const { data: saved, error: submitError } = isEdit
+      ? await requestJson<{ id: string }>("PATCH", `/api/projects/${project!.id}`, payload)
+      : await requestJson<{ id: string }>("POST", "/api/projects", { ...payload, linkedIdeaId });
 
-    if (submitError || !project) {
+    if (submitError || !saved) {
       setError(submitError ?? "Something went wrong. Please try again.");
       setLoading(false);
       return;
     }
 
-    if (linkedIdeaId) {
-      await fetch(`/api/ideas/${linkedIdeaId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkedProjectId: project.id }),
-      });
+    if (!isEdit && linkedIdeaId) {
+      await requestJson("PATCH", `/api/ideas/${linkedIdeaId}`, { linkedProjectId: saved.id });
     }
 
     setLoading(false);
-    setTitle("");
-    setDescription("");
-    setColor("#6366f1");
-    setTargetDate("");
-    setTags([]);
+    reset();
     onOpenChange(false);
-    onCreated();
+    onSaved();
   }
 
   if (!open) return null;
@@ -84,7 +104,7 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
   return (
     <ModalShell maxWidth="md">
       <ModalShellHeader>
-        <h2 className="font-semibold">New project</h2>
+        <h2 className="font-semibold">{isEdit ? "Edit project" : "New project"}</h2>
       </ModalShellHeader>
       <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalShellBody className="space-y-4">
@@ -154,7 +174,9 @@ export function CreateProjectDialog({ open, onOpenChange, onCreated, linkedIdeaI
               Cancel
             </Button>
             <Button type="submit" form={formId} className="flex-1" disabled={loading}>
-              {loading ? "Creating..." : "Create project"}
+              {loading
+                ? isEdit ? "Saving..." : "Creating..."
+                : isEdit ? "Save changes" : "Create project"}
             </Button>
           </div>
         </ModalShellFooter>

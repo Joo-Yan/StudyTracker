@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Clock, TrendingUp, Check } from "lucide-react";
+import { Plus, Clock, TrendingUp, Check, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,9 +15,10 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn, calcOkrProgress, calcProgress, daysUntil, formatDate } from "@/lib/utils";
-import { CreateOkrDialog } from "@/components/okr/create-okr-dialog";
+import { CreateOkrDialog, type ObjectiveFormData } from "@/components/okr/create-okr-dialog";
 import { CheckInDialog } from "@/components/okr/checkin-dialog";
 import { TagFilter } from "@/components/shared/tag-filter";
+import { requestJson } from "@/lib/api-client";
 
 interface CheckIn {
   id: string;
@@ -60,6 +61,7 @@ export default function OkrPage() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<ObjectiveFormData | null>(null);
   const [checkInKr, setCheckInKr] = useState<KeyResult | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagKey, setTagKey] = useState(0);
@@ -125,6 +127,23 @@ export default function OkrPage() {
     }
   }
 
+  async function handleDelete(obj: Objective) {
+    if (
+      !window.confirm(
+        `Delete "${obj.title}" with its key results, check-ins, and tasks? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    const { error } = await requestJson("DELETE", `/api/okr/${obj.id}`);
+    if (error) {
+      window.alert(error);
+      return;
+    }
+    fetchObjectives();
+    setTagKey((k) => k + 1);
+  }
+
   function getStatusBadge(obj: Objective) {
     const days = daysUntil(obj.deadline);
     const progress = calcOkrProgress(obj.keyResults);
@@ -184,7 +203,28 @@ export default function OkrPage() {
                         </CardDescription>
                       )}
                     </div>
-                    <Badge variant={badge.variant}>{badge.label}</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground"
+                        onClick={() => {
+                          setEditing(obj);
+                          setCreateOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDelete(obj)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -291,8 +331,12 @@ export default function OkrPage() {
 
       <CreateOkrDialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={() => { fetchObjectives(); setTagKey((k) => k + 1); }}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setEditing(null);
+        }}
+        objective={editing}
+        onSaved={() => { fetchObjectives(); setTagKey((k) => k + 1); }}
       />
 
       {checkInKr && (

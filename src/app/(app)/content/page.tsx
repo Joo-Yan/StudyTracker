@@ -3,12 +3,12 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, ExternalLink, Star, Trash2 } from "lucide-react";
+import { Plus, ExternalLink, Star, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CreateContentDialog } from "@/components/content/create-content-dialog";
+import { CreateContentDialog, type ContentFormData } from "@/components/content/create-content-dialog";
 import { TagFilter } from "@/components/shared/tag-filter";
 
 interface ContentItem {
@@ -50,6 +50,7 @@ export default function ContentPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<ContentFormData | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagKey, setTagKey] = useState(0);
 
@@ -191,6 +192,14 @@ export default function ContentPage() {
                 <Button
                   size="icon"
                   variant="ghost"
+                  className="h-7 w-7 text-muted-foreground"
+                  onClick={() => { setEditing(item); setOpen(true); }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
                   onClick={() => deleteItem(item.id)}
                 >
@@ -202,7 +211,15 @@ export default function ContentPage() {
         </div>
       )}
 
-      <CreateContentDialog open={open} onOpenChange={setOpen} onCreated={() => { fetchItems(); setTagKey((k) => k + 1); }} />
+      <CreateContentDialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setEditing(null);
+        }}
+        item={editing}
+        onSaved={() => { fetchItems(); setTagKey((k) => k + 1); }}
+      />
     </div>
   );
 }

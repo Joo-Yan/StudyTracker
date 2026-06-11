@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,23 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
-import { postJson } from "@/lib/api-client";
+import { requestJson } from "@/lib/api-client";
+
+export interface TodoFormData {
+  id: string;
+  title: string;
+  description?: string | null;
+  dueDate?: string | null;
+  priority: number;
+  tags: string[];
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  /** When set, the dialog edits this todo instead of creating a new one. */
+  todo?: TodoFormData | null;
 }
 
 const PRIORITIES = [
@@ -26,8 +37,9 @@ const PRIORITIES = [
   { value: 3, label: "Low" },
 ];
 
-export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreateTodoDialog({ open, onOpenChange, onSaved, todo }: Props) {
   const formId = "create-todo-form";
+  const isEdit = !!todo;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -44,18 +56,31 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
     setTags([]);
   }
 
+  useEffect(() => {
+    if (!open) return;
+    setTitle(todo?.title ?? "");
+    setDescription(todo?.description ?? "");
+    setDueDate(todo?.dueDate ? todo.dueDate.slice(0, 10) : "");
+    setPriority(todo?.priority ?? 2);
+    setTags(todo?.tags ?? []);
+    setError("");
+  }, [open, todo]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { error: submitError } = await postJson("/api/todos", {
+    const payload = {
       title,
       description: description || null,
       dueDate: dueDate || null,
       priority,
       tags,
-    });
+    };
+    const { error: submitError } = isEdit
+      ? await requestJson("PATCH", `/api/todos/${todo!.id}`, payload)
+      : await requestJson("POST", "/api/todos", payload);
 
     setLoading(false);
     if (submitError) {
@@ -65,7 +90,7 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
 
     reset();
     onOpenChange(false);
-    onCreated();
+    onSaved();
   }
 
   if (!open) return null;
@@ -73,7 +98,7 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
   return (
     <ModalShell maxWidth="md">
       <ModalShellHeader>
-        <h2 className="font-semibold">New todo</h2>
+        <h2 className="font-semibold">{isEdit ? "Edit todo" : "New todo"}</h2>
       </ModalShellHeader>
       <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalShellBody className="space-y-4">
@@ -146,7 +171,9 @@ export function CreateTodoDialog({ open, onOpenChange, onCreated }: Props) {
               Cancel
             </Button>
             <Button type="submit" form={formId} className="flex-1" disabled={loading}>
-              {loading ? "Creating..." : "Create todo"}
+              {loading
+                ? isEdit ? "Saving..." : "Creating..."
+                : isEdit ? "Save changes" : "Create todo"}
             </Button>
           </div>
         </ModalShellFooter>

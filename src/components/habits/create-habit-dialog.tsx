@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,25 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
-import { postJson } from "@/lib/api-client";
+import { requestJson } from "@/lib/api-client";
+
+export interface HabitFormData {
+  id: string;
+  title: string;
+  description?: string | null;
+  icon: string;
+  color: string;
+  frequencyType: string;
+  frequencyDays?: number[];
+  tags: string[];
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  /** When set, the dialog edits this habit instead of creating a new one. */
+  habit?: HabitFormData | null;
 }
 
 const ICONS = ["✓", "📚", "🏃", "💻", "🧘", "✍️", "💪", "🎵", "🌱", "💧"];
@@ -32,8 +45,9 @@ const COLORS = [
   "#06b6d4",
 ];
 
-export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreateHabitDialog({ open, onOpenChange, onSaved, habit }: Props) {
   const formId = "create-habit-form";
+  const isEdit = !!habit;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [icon, setIcon] = useState("✓");
@@ -43,6 +57,18 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setTitle(habit?.title ?? "");
+    setDescription(habit?.description ?? "");
+    setIcon(habit?.icon ?? "✓");
+    setColor(habit?.color ?? "#6366f1");
+    setFrequencyType(habit?.frequencyType ?? "daily");
+    setFrequencyDays(habit?.frequencyDays ?? []);
+    setTags(habit?.tags ?? []);
+    setError("");
+  }, [open, habit]);
 
   function toggleDay(day: number) {
     setFrequencyDays((prev) =>
@@ -55,7 +81,7 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
     setLoading(true);
     setError("");
 
-    const { error: submitError } = await postJson("/api/habits", {
+    const payload = {
       title,
       description,
       icon,
@@ -63,7 +89,10 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
       frequencyType,
       frequencyDays: frequencyType === "weekly" ? frequencyDays : [],
       tags,
-    });
+    };
+    const { error: submitError } = isEdit
+      ? await requestJson("PATCH", `/api/habits/${habit!.id}`, payload)
+      : await requestJson("POST", "/api/habits", payload);
 
     setLoading(false);
     if (submitError) {
@@ -71,15 +100,8 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
       return;
     }
 
-    setTitle("");
-    setDescription("");
-    setIcon("✓");
-    setColor("#6366f1");
-    setFrequencyType("daily");
-    setFrequencyDays([]);
-    setTags([]);
     onOpenChange(false);
-    onCreated();
+    onSaved();
   }
 
   if (!open) return null;
@@ -87,7 +109,7 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
   return (
     <ModalShell maxWidth="md">
       <ModalShellHeader>
-        <h2 className="font-semibold">New habit</h2>
+        <h2 className="font-semibold">{isEdit ? "Edit habit" : "New habit"}</h2>
       </ModalShellHeader>
       <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalShellBody className="space-y-4">
@@ -203,7 +225,9 @@ export function CreateHabitDialog({ open, onOpenChange, onCreated }: Props) {
               Cancel
             </Button>
             <Button type="submit" form={formId} className="flex-1" disabled={loading}>
-              {loading ? "Creating..." : "Create habit"}
+              {loading
+                ? isEdit ? "Saving..." : "Creating..."
+                : isEdit ? "Save changes" : "Create habit"}
             </Button>
           </div>
         </ModalShellFooter>

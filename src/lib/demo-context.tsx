@@ -113,6 +113,21 @@ async function handleApiRequest(
       return jsonResponse(logs);
     }
 
+    // PATCH /api/habits/[id]
+    if (id && !subEntity && method === "PATCH") {
+      const habit = store.habits.find((h) => h.id === id);
+      if (!habit) return jsonResponse({ error: "Not found" }, 404);
+      Object.assign(habit, body);
+      return jsonResponse(habit);
+    }
+
+    // DELETE /api/habits/[id]
+    if (id && !subEntity && method === "DELETE") {
+      const idx = store.habits.findIndex((h) => h.id === id);
+      if (idx !== -1) store.habits.splice(idx, 1);
+      return jsonResponse({ success: true });
+    }
+
     // POST /api/habits
     if (!id && method === "POST") {
       const habit = {
@@ -284,6 +299,36 @@ async function handleApiRequest(
       return jsonResponse(checkIn, 201);
     }
 
+    // PATCH /api/okr/[id]
+    if (id && !subEntity && method === "PATCH") {
+      const obj = store.objectives.find((o) => o.id === id);
+      if (!obj) return jsonResponse({ error: "Not found" }, 404);
+      const { keyResults: incoming, ...fields } = body;
+      Object.assign(obj, fields);
+      if (Array.isArray(incoming)) {
+        const existing = Array.isArray(obj.keyResults) ? obj.keyResults : [];
+        obj.keyResults = incoming.map((kr: any) => {
+          const prev = kr.id ? existing.find((e: any) => e.id === kr.id) : null;
+          return {
+            currentValue: 0,
+            status: "not_started",
+            checkIns: [],
+            ...(prev ?? {}),
+            ...kr,
+            id: kr.id ?? uuid(),
+          };
+        });
+      }
+      return jsonResponse(obj);
+    }
+
+    // DELETE /api/okr/[id]
+    if (id && !subEntity && method === "DELETE") {
+      const idx = store.objectives.findIndex((o) => o.id === id);
+      if (idx !== -1) store.objectives.splice(idx, 1);
+      return jsonResponse({ success: true });
+    }
+
     // POST /api/okr
     if (!id && method === "POST") {
       const obj = {
@@ -447,8 +492,15 @@ async function handleApiRequest(
     if (id && !subEntity && method === "PATCH") {
       const project = store.projects.find((p) => p.id === id);
       if (!project) return jsonResponse({ error: "Not found" }, 404);
-      if (body.notes !== undefined) project.notes = body.notes;
+      Object.assign(project, body);
       return jsonResponse(project);
+    }
+
+    // DELETE /api/projects/[id]
+    if (id && !subEntity && method === "DELETE") {
+      const idx = store.projects.findIndex((p) => p.id === id);
+      if (idx !== -1) store.projects.splice(idx, 1);
+      return jsonResponse({ success: true });
     }
 
     // POST /api/projects

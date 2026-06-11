@@ -184,7 +184,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <CreateProjectDialog open={open} onOpenChange={setOpen} onCreated={() => { fetchProjects(); setTagKey((k) => k + 1); }} />
+      <CreateProjectDialog open={open} onOpenChange={setOpen} onSaved={() => { fetchProjects(); setTagKey((k) => k + 1); }} />
     </div>
   );
 }

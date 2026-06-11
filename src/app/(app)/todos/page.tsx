@@ -3,11 +3,11 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CreateTodoDialog } from "@/components/todos/create-todo-dialog";
+import { CreateTodoDialog, type TodoFormData } from "@/components/todos/create-todo-dialog";
 import { TagFilter } from "@/components/shared/tag-filter";
 import { cn } from "@/lib/utils";
 import { formatTodoDueDate, isDateOverdue } from "@/lib/todo-utils";
@@ -39,10 +39,11 @@ function isOverdue(todo: Todo): boolean {
 interface TodoRowProps {
   todo: Todo;
   onToggle: (todo: Todo) => void;
+  onEdit: (todo: Todo) => void;
   onDelete: (id: string) => void;
 }
 
-function TodoRow({ todo, onToggle, onDelete }: TodoRowProps) {
+function TodoRow({ todo, onToggle, onEdit, onDelete }: TodoRowProps) {
   const overdue = isOverdue(todo);
   return (
     <div
@@ -80,6 +81,13 @@ function TodoRow({ todo, onToggle, onDelete }: TodoRowProps) {
         </div>
       </div>
       <button
+        onClick={() => onEdit(todo)}
+        className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-1"
+        aria-label="Edit todo"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+      <button
         onClick={() => onDelete(todo.id)}
         className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1"
         aria-label="Delete todo"
@@ -94,6 +102,7 @@ export default function TodosPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<TodoFormData | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagKey, setTagKey] = useState(0);
 
@@ -126,6 +135,11 @@ export default function TodosPage() {
     if (res.ok) {
       setTodos((prev) => prev.filter((t) => t.id !== id));
     }
+  }
+
+  function startEdit(todo: Todo) {
+    setEditing(todo);
+    setDialogOpen(true);
   }
 
   const withDue = todos.filter((t) => t.dueDate !== null);
@@ -165,7 +179,7 @@ export default function TodosPage() {
             With deadline
           </h2>
           <div className="space-y-2">
-            {withDue.map((todo) => <TodoRow key={todo.id} todo={todo} onToggle={toggleComplete} onDelete={deleteTodo} />)}
+            {withDue.map((todo) => <TodoRow key={todo.id} todo={todo} onToggle={toggleComplete} onEdit={startEdit} onDelete={deleteTodo} />)}
           </div>
         </section>
       )}
@@ -177,7 +191,7 @@ export default function TodosPage() {
             No deadline
           </h2>
           <div className="space-y-2">
-            {withoutDue.map((todo) => <TodoRow key={todo.id} todo={todo} onToggle={toggleComplete} onDelete={deleteTodo} />)}
+            {withoutDue.map((todo) => <TodoRow key={todo.id} todo={todo} onToggle={toggleComplete} onEdit={startEdit} onDelete={deleteTodo} />)}
           </div>
         </section>
       )}
@@ -193,8 +207,12 @@ export default function TodosPage() {
 
       <CreateTodoDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onCreated={() => { fetchTodos(); setTagKey((k) => k + 1); }}
+        onOpenChange={(o) => {
+          setDialogOpen(o);
+          if (!o) setEditing(null);
+        }}
+        todo={editing}
+        onSaved={() => { fetchTodos(); setTagKey((k) => k + 1); }}
       />
     </div>
   );

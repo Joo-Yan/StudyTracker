@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,18 +12,31 @@ import {
   ModalShellHeader,
 } from "@/components/ui/modal-shell";
 import { TagInput } from "@/components/shared/tag-input";
-import { postJson } from "@/lib/api-client";
+import { requestJson } from "@/lib/api-client";
+
+export interface ContentFormData {
+  id: string;
+  title: string;
+  url?: string | null;
+  description?: string | null;
+  type: string;
+  priority: number;
+  tags: string[];
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: () => void;
+  /** When set, the dialog edits this item instead of creating a new one. */
+  item?: ContentFormData | null;
 }
 
 const TYPES = ["article", "video", "book", "course", "podcast", "other"];
 
-export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreateContentDialog({ open, onOpenChange, onSaved, item }: Props) {
   const formId = "create-content-form";
+  const isEdit = !!item;
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -42,19 +55,33 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
     setTags([]);
   }
 
+  useEffect(() => {
+    if (!open) return;
+    setTitle(item?.title ?? "");
+    setUrl(item?.url ?? "");
+    setDescription(item?.description ?? "");
+    setType(item?.type ?? "article");
+    setPriority(item?.priority ?? 2);
+    setTags(item?.tags ?? []);
+    setError("");
+  }, [open, item]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { error: submitError } = await postJson("/api/content", {
+    const payload = {
       title,
-      url: url || undefined,
+      url: url || null,
       description,
       type,
       priority,
       tags,
-    });
+    };
+    const { error: submitError } = isEdit
+      ? await requestJson("PATCH", `/api/content/${item!.id}`, payload)
+      : await requestJson("POST", "/api/content", payload);
 
     setLoading(false);
     if (submitError) {
@@ -64,7 +91,7 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
 
     reset();
     onOpenChange(false);
-    onCreated();
+    onSaved();
   }
 
   if (!open) return null;
@@ -72,7 +99,7 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
   return (
     <ModalShell maxWidth="md">
       <ModalShellHeader>
-        <h2 className="font-semibold">Add to library</h2>
+        <h2 className="font-semibold">{isEdit ? "Edit item" : "Add to library"}</h2>
       </ModalShellHeader>
       <form id={formId} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <ModalShellBody className="space-y-4">
@@ -165,7 +192,7 @@ export function CreateContentDialog({ open, onOpenChange, onCreated }: Props) {
               Cancel
             </Button>
             <Button type="submit" form={formId} className="flex-1" disabled={loading}>
-              {loading ? "Adding..." : "Add to library"}
+              {loading ? "Saving..." : isEdit ? "Save changes" : "Add to library"}
             </Button>
           </div>
         </ModalShellFooter>
