@@ -56,8 +56,29 @@ export default function IdeasPage() {
   useEffect(() => { fetchIdeas(); }, [fetchIdeas]);
 
   async function deleteIdea(id: string) {
-    await fetch(`/api/ideas/${id}`, { method: "DELETE" });
-    fetchIdeas();
+    const snapshot = ideas;
+    setIdeas((prev) => prev.filter((i) => i.id !== id));
+    setTagKey((k) => k + 1);
+    const res = await fetch(`/api/ideas/${id}`, { method: "DELETE" });
+    if (!res.ok) setIdeas(snapshot);
+  }
+
+  function handleSaved(saved: IdeaFormData) {
+    setTagKey((k) => k + 1);
+    if (selectedTag) {
+      fetchIdeas();
+      return;
+    }
+    setIdeas((prev) => {
+      const existing = prev.find((i) => i.id === saved.id);
+      const next = {
+        status: "raw",
+        ...existing,
+        ...saved,
+        description: saved.description ?? undefined,
+      } as Idea;
+      return existing ? prev.map((i) => (i.id === saved.id ? next : i)) : [next, ...prev];
+    });
   }
 
   async function handleProjectCreated() {
@@ -190,7 +211,7 @@ export default function IdeasPage() {
           if (!o) setEditing(null);
         }}
         idea={editing}
-        onSaved={() => { fetchIdeas(); setTagKey((k) => k + 1); }}
+        onSaved={handleSaved}
       />
 
       {convertIdea && (

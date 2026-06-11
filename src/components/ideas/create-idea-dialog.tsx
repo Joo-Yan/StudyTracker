@@ -26,7 +26,7 @@ export interface IdeaFormData {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: IdeaFormData) => void;
   /** When set, the dialog edits this idea instead of creating a new one. */
   idea?: IdeaFormData | null;
 }
@@ -68,19 +68,19 @@ export function CreateIdeaDialog({ open, onOpenChange, onSaved, idea }: Props) {
     setError("");
 
     const payload = { title, description, type, priority, tags };
-    const { error: submitError } = isEdit
-      ? await requestJson("PATCH", `/api/ideas/${idea!.id}`, payload)
-      : await requestJson("POST", "/api/ideas", payload);
+    const { data, error: submitError } = isEdit
+      ? await requestJson<IdeaFormData>("PATCH", `/api/ideas/${idea!.id}`, payload)
+      : await requestJson<IdeaFormData>("POST", "/api/ideas", payload);
 
     setLoading(false);
-    if (submitError) {
-      setError(submitError);
+    if (submitError || !data) {
+      setError(submitError ?? "Something went wrong. Please try again.");
       return;
     }
 
     reset();
     onOpenChange(false);
-    onSaved();
+    onSaved(data);
   }
 
   if (!open) return null;

@@ -26,7 +26,7 @@ export interface TodoFormData {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: TodoFormData) => void;
   /** When set, the dialog edits this todo instead of creating a new one. */
   todo?: TodoFormData | null;
 }
@@ -78,19 +78,19 @@ export function CreateTodoDialog({ open, onOpenChange, onSaved, todo }: Props) {
       priority,
       tags,
     };
-    const { error: submitError } = isEdit
-      ? await requestJson("PATCH", `/api/todos/${todo!.id}`, payload)
-      : await requestJson("POST", "/api/todos", payload);
+    const { data, error: submitError } = isEdit
+      ? await requestJson<TodoFormData>("PATCH", `/api/todos/${todo!.id}`, payload)
+      : await requestJson<TodoFormData>("POST", "/api/todos", payload);
 
     setLoading(false);
-    if (submitError) {
-      setError(submitError);
+    if (submitError || !data) {
+      setError(submitError ?? "Something went wrong. Please try again.");
       return;
     }
 
     reset();
     onOpenChange(false);
-    onSaved();
+    onSaved(data);
   }
 
   if (!open) return null;

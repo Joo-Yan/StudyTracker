@@ -26,7 +26,7 @@ export interface ProjectFormData {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: ProjectFormData) => void;
   linkedIdeaId?: string;
   defaultTitle?: string;
   /** When set, the dialog edits this project instead of creating a new one. */
@@ -80,8 +80,8 @@ export function CreateProjectDialog({ open, onOpenChange, onSaved, linkedIdeaId,
       tags,
     };
     const { data: saved, error: submitError } = isEdit
-      ? await requestJson<{ id: string }>("PATCH", `/api/projects/${project!.id}`, payload)
-      : await requestJson<{ id: string }>("POST", "/api/projects", { ...payload, linkedIdeaId });
+      ? await requestJson<ProjectFormData>("PATCH", `/api/projects/${project!.id}`, payload)
+      : await requestJson<ProjectFormData>("POST", "/api/projects", { ...payload, linkedIdeaId });
 
     if (submitError || !saved) {
       setError(submitError ?? "Something went wrong. Please try again.");
@@ -96,7 +96,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSaved, linkedIdeaId,
     setLoading(false);
     reset();
     onOpenChange(false);
-    onSaved();
+    onSaved(saved);
   }
 
   if (!open) return null;

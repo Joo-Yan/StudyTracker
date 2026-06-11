@@ -27,7 +27,7 @@ export interface ContentFormData {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: ContentFormData) => void;
   /** When set, the dialog edits this item instead of creating a new one. */
   item?: ContentFormData | null;
 }
@@ -79,19 +79,19 @@ export function CreateContentDialog({ open, onOpenChange, onSaved, item }: Props
       priority,
       tags,
     };
-    const { error: submitError } = isEdit
-      ? await requestJson("PATCH", `/api/content/${item!.id}`, payload)
-      : await requestJson("POST", "/api/content", payload);
+    const { data, error: submitError } = isEdit
+      ? await requestJson<ContentFormData>("PATCH", `/api/content/${item!.id}`, payload)
+      : await requestJson<ContentFormData>("POST", "/api/content", payload);
 
     setLoading(false);
-    if (submitError) {
-      setError(submitError);
+    if (submitError || !data) {
+      setError(submitError ?? "Something went wrong. Please try again.");
       return;
     }
 
     reset();
     onOpenChange(false);
-    onSaved();
+    onSaved(data);
   }
 
   if (!open) return null;

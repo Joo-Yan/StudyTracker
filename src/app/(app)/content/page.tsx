@@ -66,17 +66,41 @@ export default function ContentPage() {
   async function advanceStatus(item: ContentItem) {
     const next = STATUS_NEXT[item.status];
     if (!next) return;
-    await fetch(`/api/content/${item.id}`, {
+    const snapshot = items;
+    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: next } : i)));
+    const res = await fetch(`/api/content/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
     });
-    fetchItems();
+    if (!res.ok) setItems(snapshot);
   }
 
   async function deleteItem(id: string) {
-    await fetch(`/api/content/${id}`, { method: "DELETE" });
-    fetchItems();
+    const snapshot = items;
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setTagKey((k) => k + 1);
+    const res = await fetch(`/api/content/${id}`, { method: "DELETE" });
+    if (!res.ok) setItems(snapshot);
+  }
+
+  function handleSaved(saved: ContentFormData) {
+    setTagKey((k) => k + 1);
+    if (selectedTag) {
+      fetchItems();
+      return;
+    }
+    setItems((prev) => {
+      const existing = prev.find((i) => i.id === saved.id);
+      const next = {
+        status: "want_to_learn",
+        ...existing,
+        ...saved,
+        url: saved.url ?? undefined,
+        description: saved.description ?? undefined,
+      } as ContentItem;
+      return existing ? prev.map((i) => (i.id === saved.id ? next : i)) : [next, ...prev];
+    });
   }
 
   const filtered =
@@ -218,7 +242,7 @@ export default function ContentPage() {
           if (!o) setEditing(null);
         }}
         item={editing}
-        onSaved={() => { fetchItems(); setTagKey((k) => k + 1); }}
+        onSaved={handleSaved}
       />
     </div>
   );

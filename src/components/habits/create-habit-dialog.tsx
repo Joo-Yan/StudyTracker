@@ -28,7 +28,7 @@ export interface HabitFormData {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: HabitFormData) => void;
   /** When set, the dialog edits this habit instead of creating a new one. */
   habit?: HabitFormData | null;
 }
@@ -90,18 +90,18 @@ export function CreateHabitDialog({ open, onOpenChange, onSaved, habit }: Props)
       frequencyDays: frequencyType === "weekly" ? frequencyDays : [],
       tags,
     };
-    const { error: submitError } = isEdit
-      ? await requestJson("PATCH", `/api/habits/${habit!.id}`, payload)
-      : await requestJson("POST", "/api/habits", payload);
+    const { data, error: submitError } = isEdit
+      ? await requestJson<HabitFormData>("PATCH", `/api/habits/${habit!.id}`, payload)
+      : await requestJson<HabitFormData>("POST", "/api/habits", payload);
 
     setLoading(false);
-    if (submitError) {
-      setError(submitError);
+    if (submitError || !data) {
+      setError(submitError ?? "Something went wrong. Please try again.");
       return;
     }
 
     onOpenChange(false);
-    onSaved();
+    onSaved(data);
   }
 
   if (!open) return null;

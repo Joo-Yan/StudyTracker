@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn, calcProgress, formatDateShort, daysUntil } from "@/lib/utils";
-import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
+import { CreateProjectDialog, type ProjectFormData } from "@/components/projects/create-project-dialog";
 import { TagFilter } from "@/components/shared/tag-filter";
 import Link from "next/link";
 
@@ -63,6 +63,27 @@ export default function ProjectsPage() {
   }, [selectedTag]);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
+
+  function handleSaved(saved: ProjectFormData) {
+    setTagKey((k) => k + 1);
+    if (selectedTag) {
+      fetchProjects();
+      return;
+    }
+    setProjects((prev) => {
+      const existing = prev.find((p) => p.id === saved.id);
+      const next = {
+        status: "active",
+        milestones: [],
+        ...existing,
+        ...saved,
+        description: saved.description ?? undefined,
+        color: saved.color ?? "#6366f1",
+        targetDate: saved.targetDate ?? undefined,
+      } as Project;
+      return existing ? prev.map((p) => (p.id === saved.id ? next : p)) : [next, ...prev];
+    });
+  }
 
   const grouped = STATUS_GROUPS.map((g) => ({
     ...g,
@@ -184,7 +205,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <CreateProjectDialog open={open} onOpenChange={setOpen} onSaved={() => { fetchProjects(); setTagKey((k) => k + 1); }} />
+      <CreateProjectDialog open={open} onOpenChange={setOpen} onSaved={handleSaved} />
     </div>
   );
 }

@@ -135,13 +135,39 @@ export default function OkrPage() {
     ) {
       return;
     }
+    const snapshot = objectives;
+    setObjectives((prev) => prev.filter((o) => o.id !== obj.id));
+    setTagKey((k) => k + 1);
     const { error } = await requestJson("DELETE", `/api/okr/${obj.id}`);
     if (error) {
       window.alert(error);
+      setObjectives(snapshot);
+    }
+  }
+
+  function handleSaved(saved: ObjectiveFormData) {
+    setTagKey((k) => k + 1);
+    if (selectedTag) {
+      fetchObjectives();
       return;
     }
-    fetchObjectives();
-    setTagKey((k) => k + 1);
+    setObjectives((prev) => {
+      const existing = prev.find((o) => o.id === saved.id);
+      // Edit: the PATCH response is the full objective (key results, check-ins, tasks).
+      if (existing) {
+        return prev.map((o) => (o.id === saved.id ? ({ ...o, ...saved } as Objective) : o));
+      }
+      // Create: the POST response has key results but no check-ins/tasks yet.
+      const keyResults = saved.keyResults.map((kr) => ({
+        ...kr,
+        unit: kr.unit ?? undefined,
+        currentValue: 0,
+        status: "active",
+        checkIns: [],
+      }));
+      const next = { status: "active", tasks: [], ...saved, keyResults } as Objective;
+      return [next, ...prev];
+    });
   }
 
   function getStatusBadge(obj: Objective) {
@@ -336,7 +362,7 @@ export default function OkrPage() {
           if (!o) setEditing(null);
         }}
         objective={editing}
-        onSaved={() => { fetchObjectives(); setTagKey((k) => k + 1); }}
+        onSaved={handleSaved}
       />
 
       {checkInKr && (

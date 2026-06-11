@@ -43,7 +43,7 @@ export interface ObjectiveFormData {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (saved: ObjectiveFormData) => void;
   /** When set, the dialog edits this objective instead of creating a new one. */
   objective?: ObjectiveFormData | null;
 }
@@ -108,18 +108,18 @@ export function CreateOkrDialog({ open, onOpenChange, onSaved, objective }: Prop
       tags,
       keyResults: keyResults.filter((kr) => kr.title.trim()),
     };
-    const { error: submitError } = isEdit
-      ? await requestJson("PATCH", `/api/okr/${objective!.id}`, payload)
-      : await requestJson("POST", "/api/okr", payload);
+    const { data, error: submitError } = isEdit
+      ? await requestJson<ObjectiveFormData>("PATCH", `/api/okr/${objective!.id}`, payload)
+      : await requestJson<ObjectiveFormData>("POST", "/api/okr", payload);
 
     setLoading(false);
-    if (submitError) {
-      setError(submitError);
+    if (submitError || !data) {
+      setError(submitError ?? "Something went wrong. Please try again.");
       return;
     }
 
     onOpenChange(false);
-    onSaved();
+    onSaved(data);
   }
 
   if (!open) return null;

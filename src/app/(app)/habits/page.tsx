@@ -93,14 +93,34 @@ export default function HabitsPage() {
     if (!window.confirm(`Delete "${habit.title}" and all of its history? This cannot be undone.`)) {
       return;
     }
+    // Optimistic removal — re-add on failure.
+    const snapshot = habits;
+    if (selected === habit.id) setSelected(null);
+    setHabits((prev) => prev.filter((h) => h.id !== habit.id));
+    setTagKey((k) => k + 1);
     const { error } = await requestJson("DELETE", `/api/habits/${habit.id}`);
     if (error) {
       window.alert(error);
+      setHabits(snapshot);
+    }
+  }
+
+  function handleSaved(saved: HabitFormData) {
+    setTagKey((k) => k + 1);
+    // A tag filter is active: let the server decide membership.
+    if (selectedTag) {
+      fetchHabits();
       return;
     }
-    if (selected === habit.id) setSelected(null);
-    fetchHabits();
-    setTagKey((k) => k + 1);
+    setHabits((prev) => {
+      const existing = prev.find((h) => h.id === saved.id);
+      const next = {
+        ...(existing ?? { logs: [] }),
+        ...saved,
+        description: saved.description ?? undefined,
+      } as Habit;
+      return existing ? prev.map((h) => (h.id === saved.id ? next : h)) : [next, ...prev];
+    });
   }
 
   const today = todayString();
@@ -252,7 +272,7 @@ export default function HabitsPage() {
           if (!o) setEditing(null);
         }}
         habit={editing}
-        onSaved={() => { fetchHabits(); setTagKey((k) => k + 1); }}
+        onSaved={handleSaved}
       />
     </div>
   );

@@ -142,6 +142,25 @@ export default function TodosPage() {
     setDialogOpen(true);
   }
 
+  function handleSaved(saved: TodoFormData) {
+    setTagKey((k) => k + 1);
+    if (selectedTag) {
+      fetchTodos();
+      return;
+    }
+    setTodos((prev) => {
+      const existing = prev.find((t) => t.id === saved.id);
+      const next = {
+        completed: false,
+        completedAt: null,
+        createdAt: new Date().toISOString(),
+        ...existing,
+        ...saved,
+      } as Todo;
+      return existing ? prev.map((t) => (t.id === saved.id ? next : t)) : [next, ...prev];
+    });
+  }
+
   const withDue = todos.filter((t) => t.dueDate !== null);
   const withoutDue = todos.filter((t) => t.dueDate === null);
 
@@ -212,7 +231,7 @@ export default function TodosPage() {
           if (!o) setEditing(null);
         }}
         todo={editing}
-        onSaved={() => { fetchTodos(); setTagKey((k) => k + 1); }}
+        onSaved={handleSaved}
       />
     </div>
   );
